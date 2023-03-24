@@ -15,14 +15,22 @@ mod app_state;
 
 use simple::{upload, list_packages};
 use app_state::AppState;
+use object_store::local::LocalFileSystem;
+use std::sync::Arc;
 
 
 #[tokio::main]
 async fn main() {
     let static_dir = String::from("./static");
-    let index_dir = String::from("./simple-index");
 
-    let state = AppState { static_dir, index_dir };
+    let storage = LocalFileSystem::new_with_prefix("simple-index").unwrap();
+    let store = Arc::new(storage);
+
+    let state = AppState { 
+        static_dir, 
+        store,
+
+    };
 
     let app = Router::new()
         .route("/simple", post(upload))

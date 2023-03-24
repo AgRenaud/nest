@@ -1,9 +1,10 @@
 use crate::app_state::AppState;
 
-
 use axum::{extract::State, response::Json};
-use axum_typed_multipart::{FieldData, TempFile, TryFromMultipart, TypedMultipart};
+use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use serde::Serialize;
+use axum::body::Bytes;
+use object_store::path::Path;
 
 
 #[derive(Serialize)]
@@ -40,41 +41,34 @@ pub struct RequestData {
     md5_digest: String,
     blake2_256_digest: String,
     protocol_version: String,
-    content: FieldData<TempFile>,
+    content: FieldData<Bytes>,
 }
 
-pub async fn upload(data: TypedMultipart<RequestData>) {
-    println!("- New request -");
-    println!("\t{:?}", data.0.action);
-    println!("\t{:?}", data.0.name);
-    println!("\t{:?}", data.0.version);
-    println!("\t{:?}", data.0.filetype);
-    println!("\t{:?}", data.0.pyversion);
-    println!("\t{:?}", data.0.metadata_version);
-    println!("\t{:?}", data.0.summary);
-    println!("\t{:?}", data.0.home_page);
-    println!("\t{:?}", data.0.author);
-    println!("\t{:?}", data.0.author_email);
-    println!("\t{:?}", data.0.maintainer);
-    println!("\t{:?}", data.0.maintainer_email);
-    println!("\t{:?}", data.0.license);
-    println!("\t{:?}", data.0.description);
-    println!("\t{:?}", data.0.keywords);
-    println!("\t{:?}", data.0.classifiers);
-    println!("\t{:?}", data.0.download_url);
-    println!("\t{:?}", data.0.comment);
-    println!("\t{:?}", data.0.sha256_digest);
-    println!("\t{:?}", data.0.requires_python);
-    println!("\t{:?}", data.0.description_content_type);
-    println!("\t{:?}", data.0.md5_digest);
-    println!("\t{:?}", data.0.blake2_256_digest);
-    println!("\t{:?}", data.0.protocol_version);
-    println!("\t{:?}", data.0.content.metadata.file_name);
+pub async fn upload(State(mut state): State<AppState>, data: TypedMultipart<RequestData>) {
+    
+    let content = data.0.content;
+    let metadata = content.metadata;
+    let filename = &metadata.file_name.unwrap();
+    let bytes = content.contents;
+
+    println!(
+        "Add package {}",
+        data.0.name
+    );
+    println!(
+        "file name = '{}', content type = '{}', size = '{}'",
+        filename,
+        &metadata.content_type.unwrap_or(String::from("text/plain")),
+        &bytes.len()
+    );
+
+    state
+        .save_file(filename, bytes)
+        .await
+    ;
 }
 
 pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {
-    let path = state.index_dir;
-
     let packages: Vec<String> = Vec::new();
 
     Json(SimpleIndex{ packages })
