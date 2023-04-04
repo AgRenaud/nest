@@ -1,16 +1,17 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 
 #[derive(Serialize, Deserialize)]
 pub struct PkgFile {
-    pub pkgname: String,
-    pub version: String,
-    pub fullname: String,
-    pub root: String,
-    pub relfn: String,
-    pub replaces: String,
-    pub pkgname_norm: String,
-    pub digest: String,
-    pub relfn_unix: String,
-    pub parsed_version: String
+    pub pkgname: Cow<'static, str>,
+    pub version: Cow<'static, str>,
+    pub fullname: Cow<'static, str>,
+    pub root: Cow<'static, str>,
+    pub relfn: Cow<'static, str>,
+    pub replaces: Cow<'static, str>,
+    pub pkgname_norm: Cow<'static, str>,
+    pub digest: Cow<'static, str>,
+    pub relfn_unix: Cow<'static, str>,
+    pub parsed_version: Cow<'static, str>,
 }

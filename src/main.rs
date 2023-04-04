@@ -11,19 +11,18 @@ use axum::{
 };
 
 mod app_state;
-mod simple;
 mod package;
+mod simple;
 
 use app_state::AppState;
 use object_store::local::LocalFileSystem;
 use simple::{list_packages, upload};
 use std::sync::Arc;
 
-use surrealdb::{Result, Surreal, engine::remote::ws::Ws};
-use surrealdb::sql;
-use surrealdb::opt::auth::Root;
 use surrealdb::engine::any::Any;
-
+use surrealdb::opt::auth::Root;
+use surrealdb::sql;
+use surrealdb::{engine::remote::ws::Ws, Result, Surreal};
 
 #[tokio::main]
 async fn main() {
@@ -41,8 +40,8 @@ async fn main() {
         username: "root",
         password: "root",
     })
-        .await
-        .expect("Unable to connect to db.");
+    .await
+    .expect("Unable to connect to db.");
 
     db.use_ns("namespace")
         .use_db("database")
