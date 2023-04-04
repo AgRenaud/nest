@@ -1,4 +1,4 @@
-use hyper::{header, StatusCode, };
+use hyper::{header, StatusCode};
 use std::path::Path;
 
 use axum::{
@@ -10,26 +10,51 @@ use axum::{
     Router,
 };
 
-mod simple;
 mod app_state;
+mod simple;
+mod package;
 
-use simple::{upload, list_packages};
 use app_state::AppState;
 use object_store::local::LocalFileSystem;
+use simple::{list_packages, upload};
 use std::sync::Arc;
+
+use surrealdb::{Result, Surreal, engine::remote::ws::Ws};
+use surrealdb::sql;
+use surrealdb::opt::auth::Root;
+use surrealdb::engine::any::Any;
 
 
 #[tokio::main]
 async fn main() {
     let static_dir = String::from("./static");
 
-    let storage = LocalFileSystem::new_with_prefix("simple-index").unwrap();
+    let storage =
+        LocalFileSystem::new_with_prefix("simple-index").expect("Unable to set up local index.");
     let store = Arc::new(storage);
 
-    let state = AppState { 
-        static_dir, 
-        store,
+    let db = Surreal::new::<Ws>("localhost:8000")
+        .await
+        .expect("Unable to reach db");
 
+    db.signin(Root {
+        username: "root",
+        password: "root",
+    })
+        .await
+        .expect("Unable to connect to db.");
+
+    db.use_ns("namespace")
+        .use_db("database")
+        .await
+        .expect("Unable to get namespace and database");
+
+    let db = Arc::new(db);
+
+    let state = AppState {
+        static_dir,
+        store,
+        db,
     };
 
     let app = Router::new()
