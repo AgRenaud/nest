@@ -4,6 +4,7 @@ use crate::app_state::AppState;
 
 use crate::package::PkgFile;
 use axum::body::Bytes;
+use axum::extract::RawPathParams;
 use axum::{extract::State, response::Json};
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use serde::{Deserialize, Serialize};
@@ -177,4 +178,11 @@ pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {
     let packages: Vec<String> = Vec::new();
 
     Json(SimpleIndex { packages })
+}
+
+pub async fn index(params: RawPathParams) -> axum::response::Html<&'static str> {
+    println!("Looking at the index");
+    dbg!(params);
+
+    axum::response::Html("Hello World") 
 }

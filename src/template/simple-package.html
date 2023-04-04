@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="pypi:repository-version" content="1.1">
+        <title>Links for { package_name }</title>
+    </head>
+    <body>
+        <h1>Links for { package_name }</h1>
+        {{ for value in row }}
+        <a href="{ package_url }" {{ if Some(py_version_criteria) }} data-requires-python="{ py_version_criteria }" {{ endif }}>{ filename }</a>
+        {{ endfor }}
+    </body>
+
+
+</html>

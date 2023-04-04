@@ -16,7 +16,7 @@ mod simple;
 
 use app_state::AppState;
 use object_store::local::LocalFileSystem;
-use simple::{list_packages, upload};
+use simple::{index, upload};
 use std::sync::Arc;
 
 use surrealdb::engine::any::Any;
@@ -58,7 +58,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/simple", post(upload))
-        .route("/simple", get(list_packages))
+        .route("/simple/:all", get(index))
         .route("/", get(index_html))
         .route("/index.js", get(index_js))
         .with_state(state);
