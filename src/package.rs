@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-
 #[derive(Serialize, Deserialize)]
 pub struct PkgFile {
     pub pkgname: Cow<'static, str>,
