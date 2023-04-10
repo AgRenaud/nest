@@ -117,68 +117,7 @@ pub async fn upload(State(mut state): State<AppState>, data: TypedMultipart<Requ
     );
 
     state.save_file(filename, bytes).await;
-    let created: PkgFile = state
-        .db
-        .create("package")
-        .content(PkgFile {
-            pkgname: data.0.name.clone().into(),
-            version: data.0.version.clone().into(),
-            fullname: "".into(),
-            root: "".into(),
-            relfn: "".into(),
-            replaces: "".into(),
-            pkgname_norm: "".into(),
-            digest: "".into(),
-            relfn_unix: "".into(),
-            parsed_version: "".into(),
-        })
-        .await
-        .unwrap();
-
-    let created: UploadData = state
-        .db
-        .create("package")
-        .content(UploadData {
-            protocol_version: data.0.protocol_version.into(),
-            name: data.0.name.into(),
-            version: data.0.version.into(),
-            filetype: data.0.filetype.into(),
-            pyversion: data.0.pyversion.into(),
-            metadata_version: data.0.metadata_version.into(),
-            summary: data.0.summary.into(),
-            home_page: data.0.home_page.into(),
-            author: data.0.author.into(),
-            author_email: data.0.author_email.into(),
-            maintainer: data.0.maintainer.into(),
-            maintainer_email: data.0.maintainer_email.into(),
-            license: data.0.license.into(),
-            description: data.0.description.into(),
-            keywords: data.0.keywords.into(),
-            platform: match data.0.platform {
-                Some(x) => x.into(),
-                _ => "".into(),
-            },
-            download_url: data.0.download_url.into(),
-            supported_platform: match data.0.supported_platform {
-                Some(x) => x.into(),
-                _ => "".into(),
-            },
-            comment: data.0.comment.into(),
-            md5_digest: data.0.md5_digest.into(),
-            sha256_digest: data.0.sha256_digest.into(),
-            blake2_256_digest: data.0.blake2_256_digest.into(),
-            provides: data.0.provides.into(),
-            requires: data.0.requires.into(),
-            obsoletes: data.0.obsoletes.into(),
-            project_urls: data.0.project_urls.into(),
-            provides_dist: data.0.provides_dist.into(),
-            obsoletes_dist: data.0.obsoletes_dist.into(),
-            requires_dist: data.0.requires_dist.into(),
-            requires_external: data.0.requires_external.into(),
-            requires_python: data.0.requires_python.into(),
-        })
-        .await
-        .unwrap();
+    state.db.query("SELECT * FROM maintainers").bind(bindings)
 }
 
 pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {

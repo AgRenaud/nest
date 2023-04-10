@@ -1,6 +1,4 @@
-use serde::{Serialize, Deserialize};
-use validator::{Validate, ValidationError};
-
+// 
 
 struct Project(String);
 struct Classifier(String);
@@ -15,8 +13,6 @@ struct ProvidesDist(String);
 struct ObsoletesDist(String);
 
 
-
-#[derive(Serialize, Validate, Deserialize)]
 struct CoreMetadata {
     // - Metadata-Version
     // New in version 1.0.
@@ -263,7 +259,7 @@ struct CoreMetadata {
     // Project-URL: Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
     // 
     // The label is free text limited to 32 characters.
-    project_urls: Vec<ProjectUrl>,
+    project_urls: Vec<ProjectURL>,
     
     // - Provides-Extra (multiple use)
     // New in version 2.1.
