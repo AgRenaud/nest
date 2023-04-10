@@ -21,6 +21,11 @@ Then run the server with `cargo run`
 - [ ] Packages statistics
 - [ ] Enable multi project (multi index)
 
+### Some ideas
+- Serving front-end with `Leptos`. (More Rust)
+- Use `surreal` graph relation instead of record links when it makes sense.
 
 ## Useful links
 - https://packaging.python.org/en/latest/
+- https://surrealdb.com/docs/
+- https://docs.rs/axum/latest/axum/
