@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::pypa::{
-    Classifier, CoreMetadata, ObsoletesDist, Package, PkgFile, ProjectURL, RequiresDist,
-    RequiresExternal, ProvidesExtra, ProvidesDist
+    Classifier, CoreMetadata, ObsoletesDist, Package, PkgFile, ProjectURL, ProvidesDist,
+    ProvidesExtra, RequiresDist, RequiresExternal,
 };
 
 use axum::body::Bytes;
@@ -107,7 +107,7 @@ impl Into<Package> for RequestData {
                 .iter()
                 .map(|c| Classifier(c.to_string()))
                 .collect(),
-            requires_dists: parse_string(self.requires_dist) 
+            requires_dists: parse_string(self.requires_dist)
                 .iter()
                 .map(|d| RequiresDist(d.to_string()))
                 .collect(),
@@ -120,7 +120,8 @@ impl Into<Package> for RequestData {
                 .iter()
                 .map(|s| ProjectURL(s.to_string()))
                 .collect(),
-            provides_extras: self.provides_extra
+            provides_extras: self
+                .provides_extra
                 .iter()
                 .map(|s| ProvidesExtra(s.to_string()))
                 .collect(),
