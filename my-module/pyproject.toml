@@ -1,18 +1,38 @@
 [tool.poetry]
 name = "my-module"
 version = "0.1.0"
-description = ""
+description = "Test module for upload"
 authors = ["AgRenaud <renaud.aguirrechambilla@gmail.com>"]
 readme = "README.md"
 packages = [{include = "my_module"}]
+keywords = ["packaging", "testing"]
+maintainers = [
+  "Aguirre Renaud <renaud.aguirrechambilla@gmail.com>",
+  "Doe John <jdoe@mail.com>"
+]
+
+[project]
+dynamic = ["version", "description"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+polars = {version = "^0.17.2", platform = "linux"}
+pandas = {version = "^2.0.0", platform = "win32"}
+numpy = "^1.24.2"
+setuptools = "^67.6.1"
 
+
+[tool.poetry.extras]
+polars = ["polars"]
+pandas = ["pandas"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^4.0.2"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["setuptools", "poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = false
