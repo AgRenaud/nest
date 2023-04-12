@@ -1,15 +1,15 @@
-use std::str::FromStr;
-
 use crate::app_state::AppState;
+use crate::pypa::{
+    Classifier, CoreMetadata, ObsoletesDist, Package, PkgFile, ProjectURL, RequiresDist,
+    RequiresExternal, ProvidesExtra, ProvidesDist
+};
 
-use crate::package::PkgFile;
 use axum::body::Bytes;
 use axum::extract::RawPathParams;
+use axum::http::header::HeaderMap;
 use axum::{extract::State, response::Json};
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::borrow::Cow;
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct SimpleIndex {
@@ -27,97 +27,173 @@ pub struct RequestData {
     version: String,
 
     // file content
-    filetype: String,
-    pyversion: String,
+    filetype: Option<String>,
+    pyversion: Option<String>,
 
     // additional meta-data
     metadata_version: String,
-    summary: String,
-    home_page: String,
-    author: String,
-    author_email: String,
-    maintainer: String,
-    maintainer_email: String,
-    license: String,
-    description: String,
-    keywords: String,
+    summary: Option<String>,
+    home_page: Option<String>,
+    author: Option<String>,
+    author_email: Option<String>,
+    maintainer: Option<String>,
+    maintainer_email: Option<String>,
+    license: Option<String>,
+    description: Option<String>,
+    keywords: Option<String>,
     platform: Option<String>,
-    //classifiers: String,
-    download_url: String,
+    classifiers: Vec<String>,
+    download_url: Option<String>,
+    platforms: Vec<String>,
     supported_platform: Option<String>,
-    comment: String,
-    md5_digest: String,
-    sha256_digest: String,
-    blake2_256_digest: String,
+    comment: Option<String>,
+    md5_digest: Option<String>,
+    sha256_digest: Option<String>,
+    blake2_256_digest: Option<String>,
+    description_content_type: Option<String>,
 
     // PEP 314
-    provides: String,
-    requires: String,
-    obsoletes: String,
+    provides: Vec<String>,
+    requires: Option<String>,
+    obsoletes: Option<String>,
+    provides_extra: Vec<String>,
 
     // Metadata 1.2
-    project_urls: String,
-    provides_dist: String,
-    obsoletes_dist: String,
-    requires_dist: String,
-    requires_external: String,
-    requires_python: String,
+    project_urls: Option<String>,
+    provides_dist: Option<String>,
+    obsoletes_dist: Option<String>,
+    requires_dist: Option<String>,
+    requires_external: Option<String>,
+    requires_python: Option<String>,
     content: FieldData<Bytes>,
 }
 
-#[derive(Serialize, Deserialize)]
-struct UploadData {
-    //action: Cow<'static, str>,
-    protocol_version: Cow<'static, str>,
-    name: Cow<'static, str>,
-    version: Cow<'static, str>,
-    filetype: Cow<'static, str>,
-    pyversion: Cow<'static, str>,
-    metadata_version: Cow<'static, str>,
-    summary: Cow<'static, str>,
-    home_page: Cow<'static, str>,
-    author: Cow<'static, str>,
-    author_email: Cow<'static, str>,
-    maintainer: Cow<'static, str>,
-    maintainer_email: Cow<'static, str>,
-    license: Cow<'static, str>,
-    description: Cow<'static, str>,
-    keywords: Cow<'static, str>,
-    platform: Cow<'static, str>,
-    //classifiers: Cow<'static, str>,
-    download_url: Cow<'static, str>,
-    supported_platform: Cow<'static, str>,
-    comment: Cow<'static, str>,
-    md5_digest: Cow<'static, str>,
-    sha256_digest: Cow<'static, str>,
-    blake2_256_digest: Cow<'static, str>,
-    provides: Cow<'static, str>,
-    requires: Cow<'static, str>,
-    obsoletes: Cow<'static, str>,
-    project_urls: Cow<'static, str>,
-    provides_dist: Cow<'static, str>,
-    obsoletes_dist: Cow<'static, str>,
-    requires_dist: Cow<'static, str>,
-    requires_external: Cow<'static, str>,
-    requires_python: Cow<'static, str>,
+impl Into<Package> for RequestData {
+    fn into(self) -> Package {
+        fn parse_string(s: Option<String>) -> Vec<String> {
+            match s {
+                Some(elt) => elt
+                    .split("\r\n")
+                    .into_iter()
+                    .map(|e| e.to_string())
+                    .collect(),
+                _ => Vec::new(),
+            }
+        }
+
+        let filename = self.content.metadata.file_name.expect("No filename");
+        let content = self.content.contents;
+        let pkg_file = PkgFile { filename, content };
+
+        let metadata = CoreMetadata {
+            metadata_version: self.metadata_version,
+            name: self.name,
+            version: self.version,
+            platforms: self.platforms,
+            supported_platforms: parse_string(self.supported_platform),
+            summary: self.summary,
+            description: self.description,
+            description_content_type: self.description_content_type,
+            keywords: parse_string(self.keywords),
+            home_page: self.home_page,
+            download_url: self.download_url,
+            author: self.author,
+            author_email: self.author_email,
+            maintainer: self.maintainer,
+            maintainer_email: self.maintainer_email,
+            license: self.license,
+            classifiers: self
+                .classifiers
+                .iter()
+                .map(|c| Classifier(c.to_string()))
+                .collect(),
+            requires_dists: parse_string(self.requires_dist) 
+                .iter()
+                .map(|d| RequiresDist(d.to_string()))
+                .collect(),
+            requires_python: self.requires_python,
+            requires_externals: parse_string(self.requires_external)
+                .iter()
+                .map(|e| RequiresExternal(e.to_string()))
+                .collect(),
+            project_urls: parse_string(self.project_urls)
+                .iter()
+                .map(|s| ProjectURL(s.to_string()))
+                .collect(),
+            provides_extras: self.provides_extra
+                .iter()
+                .map(|s| ProvidesExtra(s.to_string()))
+                .collect(),
+            provides_dists: parse_string(self.provides_dist)
+                .iter()
+                .map(|s| ProvidesDist(s.to_string()))
+                .collect(),
+            obsoletes_dists: parse_string(self.obsoletes_dist)
+                .iter()
+                .map(|s| ObsoletesDist(s.to_string()))
+                .collect(),
+        };
+
+        Package { metadata, pkg_file }
+    }
 }
 
-pub async fn upload(State(mut state): State<AppState>, data: TypedMultipart<RequestData>) {
-    let content = data.0.content;
-    let metadata = content.metadata;
-    let filename = &metadata.file_name.unwrap();
-    let bytes = content.contents;
+impl std::fmt::Debug for RequestData {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("RequestData")
+            .field("action", &self.action)
+            .field("protocol_version", &self.protocol_version)
+            .field("name", &self.name)
+            .field("version", &self.version)
+            .field("filetype", &self.filetype)
+            .field("pyversion", &self.pyversion)
+            .field("metadata_version", &self.metadata_version)
+            .field("summary", &self.summary)
+            .field("home_page", &self.home_page)
+            .field("author", &self.author)
+            .field("author_email", &self.author_email)
+            .field("maintainer", &self.maintainer)
+            .field("maintainer_email", &self.maintainer_email)
+            .field("license", &self.license)
+            .field("description", &self.description)
+            .field("keywords", &self.keywords)
+            .field("platform", &self.platform)
+            .field("classifiers", &self.classifiers)
+            .field("download_url", &self.download_url)
+            .field("supported_platform", &self.supported_platform)
+            .field("comment", &self.comment)
+            .field("md5_digest", &self.md5_digest)
+            .field("sha256_digest", &self.sha256_digest)
+            .field("blake2_256_digest", &self.blake2_256_digest)
+            .field("provides", &self.provides)
+            .field("requires", &self.requires)
+            .field("obsoletes", &self.obsoletes)
+            .field("project_urls", &self.project_urls)
+            .field("provides_dist", &self.provides_dist)
+            .field("obsoletes_dist", &self.obsoletes_dist)
+            .field("requires_dist", &self.requires_dist)
+            .field("requires_external", &self.requires_external)
+            .field("requires_python", &self.requires_python)
+            .finish()
+    }
+}
 
-    println!("Add package {}", data.0.name);
-    println!(
-        "file name = '{}', content type = '{}', size = '{}'",
-        filename,
-        &metadata.content_type.unwrap_or(String::from("text/plain")),
-        &bytes.len()
-    );
+// Simple Index Store
+trait SimpleStore {
+    fn upload_package();
+}
 
-    state.save_file(filename, bytes).await;
-    state.db.query("SELECT * FROM maintainers").bind(bindings)
+pub async fn upload(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    //data: Bytes,
+    data: TypedMultipart<RequestData>,
+) {
+    dbg!(&headers);
+    //dbg!(&data);
+
+    let package: Package = data.0.into();
+    dbg!(package);
 }
 
 pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {

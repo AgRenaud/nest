@@ -12,8 +12,9 @@ use axum::{
 
 mod app_state;
 mod package;
-mod simple;
 mod pypa;
+mod simple;
+mod store;
 
 use app_state::AppState;
 use object_store::local::LocalFileSystem;
