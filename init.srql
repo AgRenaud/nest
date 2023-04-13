@@ -1,0 +1,28 @@
+BEGIN TRANSACTION;
+
+-- Create a new namespace 
+DEFINE NAMESPACE global;
+DEFINE DATABASE packages;
+
+-- Switch to database packages in the new namespace
+USE NS global DB packages;
+
+-- Define projects
+DEFINE TABLE projects SCHEMALESS;
+DEFINE FIELD name ON TABLE projects TYPE string ASSERT $value != NONE;
+DEFINE INDEX projectNameIndex ON TABLE projects COLUMNS name UNIQUE;
+
+-- Define classifiers
+DEFINE TABLE classifiers SCHEMAFULL;
+DEFINE FIELD name ON TABLE classifiers TYPE string ASSERT $value != NONE;
+DEFINE INDEX classifierNameIndex ON TABLE classifiers COLUMNS classifiers UNIQUE;
+
+-- Define Package File
+DEFINE TABLE pkg_file SCHEMAFULL;
+DEFINE FIELD filename ON TABLE pkg_file TYPE string ASSERT $value != NONE;
+DEFINE INDEX filenamePkgFileIndex ON TABLE pkg_file COLUMNS filename UNIQUE; 
+
+-- Define packages
+DEFINE TABLE pkg_metadata SCHEMALESS;
+
+COMMIT TRANSACTION;
