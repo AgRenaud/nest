@@ -113,4 +113,8 @@ impl SimpleStore for Store {
             Err(e) => Err(PackageError),
         }
     }
+
+    async fn add_pkg_metadata(&self, metadata: CoreMetadata) -> Result<(), PackageError> {
+        todo!();
+    }
 }
