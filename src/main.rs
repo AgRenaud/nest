@@ -1,17 +1,16 @@
-use hyper::{header, StatusCode};
 use std::path::Path;
+use store::Store;
 
 use axum::{
     body::{self, Empty, Full},
     extract::State,
-    http::HeaderValue,
+    http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
 
 mod app_state;
-mod package;
 mod pypa;
 mod simple;
 mod store;
@@ -21,10 +20,8 @@ use object_store::local::LocalFileSystem;
 use simple::{index, upload};
 use std::sync::Arc;
 
-use surrealdb::engine::any::Any;
 use surrealdb::opt::auth::Root;
-use surrealdb::sql;
-use surrealdb::{engine::remote::ws::Ws, Result, Surreal};
+use surrealdb::{engine::remote::ws::Ws, Surreal};
 
 #[tokio::main]
 async fn main() {
@@ -44,19 +41,16 @@ async fn main() {
     })
     .await
     .expect("Unable to connect to db.");
-
-    db.use_ns("namespace")
-        .use_db("database")
+    db.use_ns("global")
+        .use_db("packages")
         .await
         .expect("Unable to get namespace and database");
 
     let db = Arc::new(db);
 
-    let state = AppState {
-        static_dir,
-        store,
-        db,
-    };
+    let store = Arc::new(Store::new(db, store));
+
+    let state = AppState { static_dir, store };
 
     let app = Router::new()
         .route("/simple", post(upload))

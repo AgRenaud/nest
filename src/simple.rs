@@ -179,22 +179,15 @@ impl std::fmt::Debug for RequestData {
     }
 }
 
-// Simple Index Store
-trait SimpleStore {
-    fn upload_package();
-}
 
 pub async fn upload(
     State(state): State<AppState>,
     headers: HeaderMap,
-    //data: Bytes,
     data: TypedMultipart<RequestData>,
 ) {
-    dbg!(&headers);
-    //dbg!(&data);
-
     let package: Package = data.0.into();
-    dbg!(package);
+
+    let query = state.store.upload_package(package).await;
 }
 
 pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {
