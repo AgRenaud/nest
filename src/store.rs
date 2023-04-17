@@ -14,7 +14,7 @@ struct Project {
     name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Classifier {
     name: String,
 }
@@ -50,10 +50,6 @@ struct PkgMetadata {
 #[async_trait]
 pub trait SimpleStore: Send + Sync + 'static {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError>;
-    async fn add_classifiers(&self, classifiers: Vec<pypa::Classifier>)
-        -> Result<(), PackageError>;
-    async fn create_project(&self, project: String) -> Result<(), PackageError>;
-    async fn add_pkg_metadata(&self, metadata: CoreMetadata) -> Result<(), PackageError>;
 }
 
 #[derive(Clone)]
@@ -72,20 +68,31 @@ impl Store {
 #[warn(unused_must_use)]
 impl SimpleStore for Store {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError> {
+        log::info!("Uploading package");
+
         if let Err(e) = self.create_project(package.metadata.name.clone()).await {
+            log::error!("Failed to create project");
             return Err(e);
         };
 
-        if let Err(e) = self.add_classifiers(package.metadata.classifiers.clone()).await {
+        if let Err(e) = self
+            .add_classifiers(package.metadata.classifiers.clone())
+            .await
+        {
+            log::error!("Failed to add classifiers");
             return Err(e);
         }
 
         if let Err(e) = self.add_pkg_metadata(package.metadata).await {
-            return Err(e)
+            log::error!("Failed to add package metadata");
+            return Err(e);
         }
 
         Ok(())
     }
+}
+
+impl Store {
 
     async fn add_classifiers(
         &self,
@@ -98,6 +105,8 @@ impl SimpleStore for Store {
                 .content(Classifier { name: classifier.0 })
                 .await;
 
+            log::info!("Added classifier {:?}", &new_classifier);
+
             if let Err(e) = new_classifier {
                 return Err(PackageError);
             };
@@ -106,9 +115,11 @@ impl SimpleStore for Store {
     }
 
     async fn create_project(&self, project: String) -> Result<(), PackageError> {
+        log::info!("Creating project {}", &project);
+
         let project: Result<Project, Error> = self
             .db
-            .create("projects")
+            .create(("projects", &project))
             .content(Project { name: project })
             .await;
 
@@ -136,20 +147,37 @@ impl SimpleStore for Store {
             maintainer: metadata.maintainer.unwrap_or_default(),
             maintainer_email: metadata.maintainer_email.unwrap_or_default(),
             license: metadata.license.unwrap_or_default(),
-            requires_dists: metadata.requires_dists.into_iter().map(|req| req.0).collect(),
+            requires_dists: metadata
+                .requires_dists
+                .into_iter()
+                .map(|req| req.0)
+                .collect(),
             requires_python: metadata.requires_python.unwrap_or_default(),
-            requires_externals: metadata.requires_externals.into_iter().map(|req| req.0).collect(),
+            requires_externals: metadata
+                .requires_externals
+                .into_iter()
+                .map(|req| req.0)
+                .collect(),
             project_urls: metadata.project_urls.into_iter().map(|url| url.0).collect(),
-            provides_dists: metadata.provides_dists.into_iter().map(|dist| dist.0).collect(),
-            provides_extras: metadata.provides_extras.into_iter().map(|ext| ext.0).collect(),
-            obsoletes_dists: metadata.obsoletes_dists.into_iter().map(|obs| obs.0).collect(),
+            provides_dists: metadata
+                .provides_dists
+                .into_iter()
+                .map(|dist| dist.0)
+                .collect(),
+            provides_extras: metadata
+                .provides_extras
+                .into_iter()
+                .map(|ext| ext.0)
+                .collect(),
+            obsoletes_dists: metadata
+                .obsoletes_dists
+                .into_iter()
+                .map(|obs| obs.0)
+                .collect(),
         };
 
-        let pkg_metadata: Result<PkgMetadata, Error> = self
-            .db
-            .create("pkg_metadata")
-            .content(pkg_metadata)
-            .await;
+        let pkg_metadata: Result<PkgMetadata, Error> =
+            self.db.create("pkg_metadata").content(pkg_metadata).await;
 
         Ok(())
     }

@@ -25,7 +25,12 @@ use surrealdb::{engine::remote::ws::Ws, Surreal};
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let static_dir = String::from("./static");
+    let server_addr = "127.0.0.1:8080".parse().unwrap();
+
+    log::info!("Serve API at {}", server_addr);
 
     let storage =
         LocalFileSystem::new_with_prefix("simple-index").expect("Unable to set up local index.");
@@ -59,7 +64,7 @@ async fn main() {
         .route("/index.js", get(index_js))
         .with_state(state);
 
-    axum::Server::bind(&"127.0.0.1:8080".parse().unwrap())
+    axum::Server::bind(&server_addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
