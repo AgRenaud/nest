@@ -1,4 +1,4 @@
-use crate::pypa::{self, Package, CoreMetadata};
+use crate::pypa::{self, CoreMetadata, Package};
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -26,20 +26,20 @@ struct PkgMetadata {
     version: String,
     platforms: Vec<String>,
     supported_platforms: Vec<String>,
-    summary: Option<String>,
-    description: Option<String>,
-    description_content_type: Option<String>,
+    summary: String,
+    description: String,
+    description_content_type: String,
     keywords: Vec<String>,
-    home_page: Option<String>,
-    download_url: Option<String>,
-    author: Option<String>,
-    author_email: Option<String>,
-    maintainer: Option<String>,
-    maintainer_email: Option<String>,
-    license: Option<String>,
+    home_page: String,
+    download_url: String,
+    author: String,
+    author_email: String,
+    maintainer: String,
+    maintainer_email: String,
+    license: String,
     // classifiers: Vec<Classifier>, Node to Classifiers
     requires_dists: Vec<String>,
-    requires_python: Option<String>,
+    requires_python: String,
     requires_externals: Vec<String>,
     project_urls: Vec<String>,
     provides_extras: Vec<String>,
@@ -72,12 +72,16 @@ impl Store {
 #[warn(unused_must_use)]
 impl SimpleStore for Store {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError> {
-        if let Err(e) = self.create_project(package.metadata.name).await {
+        if let Err(e) = self.create_project(package.metadata.name.clone()).await {
             return Err(e);
         };
 
-        if let Err(e) = self.add_classifiers(package.metadata.classifiers).await {
+        if let Err(e) = self.add_classifiers(package.metadata.classifiers.clone()).await {
             return Err(e);
+        }
+
+        if let Err(e) = self.add_pkg_metadata(package.metadata).await {
+            return Err(e)
         }
 
         Ok(())
@@ -115,6 +119,38 @@ impl SimpleStore for Store {
     }
 
     async fn add_pkg_metadata(&self, metadata: CoreMetadata) -> Result<(), PackageError> {
-        todo!();
+        let pkg_metadata = PkgMetadata {
+            metadata_version: metadata.metadata_version,
+            name: metadata.name,
+            version: metadata.version,
+            platforms: metadata.platforms,
+            supported_platforms: metadata.supported_platforms,
+            summary: metadata.summary.unwrap_or_default(),
+            description: metadata.description.unwrap_or_default(),
+            description_content_type: metadata.description_content_type.unwrap_or_default(),
+            keywords: metadata.keywords,
+            home_page: metadata.home_page.unwrap_or_default(),
+            download_url: metadata.download_url.unwrap_or_default(),
+            author: metadata.author.unwrap_or_default(),
+            author_email: metadata.author_email.unwrap_or_default(),
+            maintainer: metadata.maintainer.unwrap_or_default(),
+            maintainer_email: metadata.maintainer_email.unwrap_or_default(),
+            license: metadata.license.unwrap_or_default(),
+            requires_dists: metadata.requires_dists.into_iter().map(|req| req.0).collect(),
+            requires_python: metadata.requires_python.unwrap_or_default(),
+            requires_externals: metadata.requires_externals.into_iter().map(|req| req.0).collect(),
+            project_urls: metadata.project_urls.into_iter().map(|url| url.0).collect(),
+            provides_dists: metadata.provides_dists.into_iter().map(|dist| dist.0).collect(),
+            provides_extras: metadata.provides_extras.into_iter().map(|ext| ext.0).collect(),
+            obsoletes_dists: metadata.obsoletes_dists.into_iter().map(|obs| obs.0).collect(),
+        };
+
+        let pkg_metadata: Result<PkgMetadata, Error> = self
+            .db
+            .create("pkg_metadata")
+            .content(pkg_metadata)
+            .await;
+
+        Ok(())
     }
 }

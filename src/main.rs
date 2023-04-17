@@ -4,7 +4,7 @@ use store::Store;
 use axum::{
     body::{self, Empty, Full},
     extract::State,
-    http::{HeaderValue, StatusCode, header},
+    http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,

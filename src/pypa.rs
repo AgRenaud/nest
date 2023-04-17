@@ -1,7 +1,7 @@
 //
 use bytes::Bytes;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Classifier(pub String);
 #[derive(Debug)]
 pub struct SupportedPlateform(pub String);
