@@ -19,6 +19,9 @@ Then run the server with `cargo run`
     - [ ] [PEP 592](https://peps.python.org/pep-0592/)
     - [ ] [PEP 629](https://peps.python.org/pep-0629/)
     - [ ] [PEP 658](https://peps.python.org/pep-0658/)
+- Server configuration:
+    - [ ] `config.toml` 
+    - [ ] CLI 
 - [ ] Embed package readme to website
 - [ ] Add Mirrors (and cache?) to others python indexes.
 

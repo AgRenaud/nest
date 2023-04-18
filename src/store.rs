@@ -5,9 +5,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use object_store::ObjectStore;
-use surrealdb::{engine::remote::ws::Client, Error, Surreal};
+use surrealdb::{engine::remote::ws::Client, sql::{Thing, Id}, Error, Surreal};
 
 pub struct PackageError;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Record {
+    id: Thing,
+}
 
 #[derive(Serialize, Deserialize)]
 struct Project {
@@ -47,6 +52,44 @@ struct PkgMetadata {
     obsoletes_dists: Vec<String>,
 }
 
+impl From<CoreMetadata> for PkgMetadata {
+    fn from(value: CoreMetadata) -> Self {
+        PkgMetadata {
+            metadata_version: value.metadata_version,
+            name: value.name,
+            version: value.version,
+            platforms: value.platforms,
+            supported_platforms: value.supported_platforms,
+            summary: value.summary.unwrap_or_default(),
+            description: value.description.unwrap_or_default(),
+            description_content_type: value.description_content_type.unwrap_or_default(),
+            keywords: value.keywords,
+            home_page: value.home_page.unwrap_or_default(),
+            download_url: value.download_url.unwrap_or_default(),
+            author: value.author.unwrap_or_default(),
+            author_email: value.author_email.unwrap_or_default(),
+            maintainer: value.maintainer.unwrap_or_default(),
+            maintainer_email: value.maintainer_email.unwrap_or_default(),
+            license: value.license.unwrap_or_default(),
+            requires_dists: value.requires_dists.into_iter().map(|req| req.0).collect(),
+            requires_python: value.requires_python.unwrap_or_default(),
+            requires_externals: value
+                .requires_externals
+                .into_iter()
+                .map(|req| req.0)
+                .collect(),
+            project_urls: value.project_urls.into_iter().map(|url| url.0).collect(),
+            provides_dists: value
+                .provides_dists
+                .into_iter()
+                .map(|dist| dist.0)
+                .collect(),
+            provides_extras: value.provides_extras.into_iter().map(|ext| ext.0).collect(),
+            obsoletes_dists: value.obsoletes_dists.into_iter().map(|obs| obs.0).collect(),
+        }
+    }
+}
+
 #[async_trait]
 pub trait SimpleStore: Send + Sync + 'static {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError>;
@@ -70,115 +113,71 @@ impl SimpleStore for Store {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError> {
         log::info!("Uploading package");
 
-        if let Err(e) = self.create_project(package.metadata.name.clone()).await {
-            log::error!("Failed to create project");
-            return Err(e);
-        };
+        let project_name = package.metadata.name.clone();
+        let classifiers = package.metadata.classifiers.clone();
+        let pkg_metadata: PkgMetadata = package.metadata.into();
 
-        if let Err(e) = self
-            .add_classifiers(package.metadata.classifiers.clone())
+        if !self.project_exists(&project_name).await {
+            log::info!("Creating project {}", &project_name);
+            let _project: Result<Project, Error> = self
+                .db
+                .create(("projects", &project_name))
+                .content(Project {
+                    name: project_name.clone(),
+                })
+                .await;
+        }
+
+        for classifier in classifiers.into_iter() {
+            let classifier_value = classifier.0;
+
+            let classifier: Option<Classifier> = self
+                .db
+                .query("SELECT * FROM classifiers WHERE name=$value")
+                .bind(("value", &classifier_value))
+                .await
+                .unwrap()
+                .take(0)
+                .unwrap();
+
+            if classifier.is_none() {
+                let _classifier: Result<Classifier, Error> = self
+                    .db
+                    .create("classifiers")
+                    .content(Classifier {
+                        name: classifier_value,
+                    })
+                    .await;
+            } else {
+                log::info!("Classfier '{}' already exists", classifier_value);
+            }
+        }
+
+        let metadata_record: Record = self
+            .db
+            .create("pkg_metadata")
+            .content(pkg_metadata)
             .await
-        {
-            log::error!("Failed to add classifiers");
-            return Err(e);
-        }
+            .unwrap();
 
-        if let Err(e) = self.add_pkg_metadata(package.metadata).await {
-            log::error!("Failed to add package metadata");
-            return Err(e);
-        }
+        println!("{:?}", metadata_record);
+
+        let relation_record = self
+            .db
+            .query("RELATE pkg_metadata:$metadata->projects:$name RETURN NONE")
+            .bind(("metadata", metadata_record.id.id))
+            .bind(("name", project_name))
+            .await
+            .unwrap();
 
         Ok(())
     }
 }
 
 impl Store {
+    async fn project_exists(&self, project_name: &str) -> bool {
+        let project: Option<Project> = self.db.select(("projects", project_name)).await.unwrap();
 
-    async fn add_classifiers(
-        &self,
-        classifiers: Vec<pypa::Classifier>,
-    ) -> Result<(), PackageError> {
-        for classifier in classifiers.into_iter() {
-            let new_classifier: Result<Classifier, Error> = self
-                .db
-                .create("classifiers")
-                .content(Classifier { name: classifier.0 })
-                .await;
-
-            log::info!("Added classifier {:?}", &new_classifier);
-
-            if let Err(e) = new_classifier {
-                return Err(PackageError);
-            };
-        }
-        Ok(())
-    }
-
-    async fn create_project(&self, project: String) -> Result<(), PackageError> {
-        log::info!("Creating project {}", &project);
-
-        let project: Result<Project, Error> = self
-            .db
-            .create(("projects", &project))
-            .content(Project { name: project })
-            .await;
-
-        match project {
-            Ok(_) => Ok(()),
-            Err(e) => Err(PackageError),
-        }
-    }
-
-    async fn add_pkg_metadata(&self, metadata: CoreMetadata) -> Result<(), PackageError> {
-        let pkg_metadata = PkgMetadata {
-            metadata_version: metadata.metadata_version,
-            name: metadata.name,
-            version: metadata.version,
-            platforms: metadata.platforms,
-            supported_platforms: metadata.supported_platforms,
-            summary: metadata.summary.unwrap_or_default(),
-            description: metadata.description.unwrap_or_default(),
-            description_content_type: metadata.description_content_type.unwrap_or_default(),
-            keywords: metadata.keywords,
-            home_page: metadata.home_page.unwrap_or_default(),
-            download_url: metadata.download_url.unwrap_or_default(),
-            author: metadata.author.unwrap_or_default(),
-            author_email: metadata.author_email.unwrap_or_default(),
-            maintainer: metadata.maintainer.unwrap_or_default(),
-            maintainer_email: metadata.maintainer_email.unwrap_or_default(),
-            license: metadata.license.unwrap_or_default(),
-            requires_dists: metadata
-                .requires_dists
-                .into_iter()
-                .map(|req| req.0)
-                .collect(),
-            requires_python: metadata.requires_python.unwrap_or_default(),
-            requires_externals: metadata
-                .requires_externals
-                .into_iter()
-                .map(|req| req.0)
-                .collect(),
-            project_urls: metadata.project_urls.into_iter().map(|url| url.0).collect(),
-            provides_dists: metadata
-                .provides_dists
-                .into_iter()
-                .map(|dist| dist.0)
-                .collect(),
-            provides_extras: metadata
-                .provides_extras
-                .into_iter()
-                .map(|ext| ext.0)
-                .collect(),
-            obsoletes_dists: metadata
-                .obsoletes_dists
-                .into_iter()
-                .map(|obs| obs.0)
-                .collect(),
-        };
-
-        let pkg_metadata: Result<PkgMetadata, Error> =
-            self.db.create("pkg_metadata").content(pkg_metadata).await;
-
-        Ok(())
+        project.is_some()
     }
 }

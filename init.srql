@@ -15,7 +15,7 @@ DEFINE INDEX projectNameIndex ON TABLE projects COLUMNS name UNIQUE;
 -- Define classifiers
 DEFINE TABLE classifiers SCHEMAFULL;
 DEFINE FIELD name ON TABLE classifiers TYPE string ASSERT $value != NONE;
-DEFINE INDEX classifierNameIndex ON TABLE classifiers COLUMNS classifiers UNIQUE;
+DEFINE INDEX classifierNameIndex ON TABLE classifiers COLUMNS name UNIQUE;
 
 -- Define Package File
 DEFINE TABLE pkg_file SCHEMAFULL;
