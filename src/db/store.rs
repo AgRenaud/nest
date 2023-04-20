@@ -111,14 +111,14 @@ impl Store {
 #[warn(unused_must_use)]
 impl SimpleStore for Store {
     async fn upload_package(&self, package: Package) -> Result<(), PackageError> {
-        log::info!("Uploading package");
+        log::debug!("Uploading package {} - {}", &package.metadata.name, &package.metadata.version);
 
         let project_name = package.metadata.name.clone();
         let classifiers = package.metadata.classifiers.clone();
         let pkg_metadata: PkgMetadata = package.metadata.into();
 
         if !self.project_exists(&project_name).await {
-            log::info!("Creating project {}", &project_name);
+            log::debug!("Creating project {}", &project_name);
             let _project: Result<Project, Error> = self
                 .db
                 .create(("projects", &project_name))
@@ -149,7 +149,7 @@ impl SimpleStore for Store {
                     })
                     .await;
             } else {
-                log::info!("Classfier '{}' already exists", classifier_value);
+                log::debug!("Classfier '{}' already exists", classifier_value);
             }
         }
 
@@ -160,15 +160,13 @@ impl SimpleStore for Store {
             .await
             .unwrap();
 
-        println!("{:?}", metadata_record);
-
-        let relation_record = self
-            .db
-            .query("RELATE pkg_metadata:$metadata->projects:$name RETURN NONE")
-            .bind(("metadata", metadata_record.id.id))
-            .bind(("name", project_name))
-            .await
-            .unwrap();
+        // let relation_record = self
+        //     .db
+        //     .query("RELATE pkg_metadata:$metadata->projects:$name RETURN NONE")
+        //     .bind(("metadata", metadata_record.id.id))
+        //     .bind(("name", project_name))
+        //     .await
+        //     .unwrap();
 
         Ok(())
     }

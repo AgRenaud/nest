@@ -1,20 +1,15 @@
-use crate::api::AppState;
 use crate::package::{
     Classifier, CoreMetadata, ObsoletesDist, Package, PkgFile, ProjectURL, ProvidesDist,
     ProvidesExtra, RequiresDist, RequiresExternal,
 };
 
 use axum::body::Bytes;
-use axum::extract::RawPathParams;
-use axum::http::header::HeaderMap;
-use axum::{extract::State, response::Json};
-use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
+use axum_typed_multipart::{FieldData, TryFromMultipart};
 use serde::Serialize;
 
-// API Models
 #[derive(Serialize)]
 pub struct SimpleIndex {
-    packages: Vec<String>,
+    pub packages: Vec<String>,
 }
 
 #[derive(TryFromMultipart)]
@@ -67,30 +62,6 @@ pub struct RequestData {
     requires_external: Option<String>,
     requires_python: Option<String>,
     content: FieldData<Bytes>,
-}
-
-// API Methods
-pub async fn upload(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    data: TypedMultipart<RequestData>,
-) {
-    let package: Package = data.0.into();
-
-    let query = state.store.upload_package(package).await;
-}
-
-pub async fn list_packages(State(state): State<AppState>) -> Json<SimpleIndex> {
-    let packages: Vec<String> = Vec::new();
-
-    Json(SimpleIndex { packages })
-}
-
-pub async fn index(params: RawPathParams) -> axum::response::Html<&'static str> {
-    println!("Looking at the index");
-    dbg!(params);
-
-    axum::response::Html("Hello World")
 }
 
 // Traits impl

@@ -3,23 +3,15 @@ mod db;
 mod greeting;
 mod package;
 
-use std::path::Path;
 use std::sync::Arc;
 
 use object_store::local::LocalFileSystem;
 use surrealdb::opt::auth::Root;
 use surrealdb::{engine::remote::ws::Ws, Surreal};
 
-use axum::{
-    body::{self, Empty, Full},
-    extract::State,
-    http::{header, HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Router,
-};
+use axum::Router;
 
-use api::{index, upload, AppState};
+use api::{simple_routes, SimpleController};
 use db::Store;
 
 #[tokio::main]
@@ -55,75 +47,12 @@ async fn main() {
 
     let store = Arc::new(Store::new(db, store));
 
-    let state = AppState { static_dir, store };
+    let state = SimpleController { static_dir, store };
 
-    let app = Router::new()
-        .route("/simple", post(upload))
-        .route("/simple/:all", get(index))
-        .route("/", get(index_html))
-        .route("/index.js", get(index_js))
-        .with_state(state);
+    let app = Router::new().merge(simple_routes(state.clone()));
 
     axum::Server::bind(&server_addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-async fn index_html(State(state): State<AppState>) -> impl IntoResponse {
-    let path = state.static_dir;
-    let path = Path::new(path.as_str()).join("index.html");
-
-    if path.is_file() {
-        let file = std::fs::read(path);
-
-        match file {
-            Ok(file) => Response::builder()
-                .status(StatusCode::OK)
-                .header(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_str("text/html").unwrap(),
-                )
-                .body(body::boxed(Full::from(file)))
-                .unwrap(),
-            Err(e) => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(body::boxed(Empty::new()))
-                .unwrap(),
-        }
-    } else {
-        Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(body::boxed(Empty::new()))
-            .unwrap()
-    }
-}
-
-async fn index_js(State(state): State<AppState>) -> impl IntoResponse {
-    let path = state.static_dir;
-    let path = Path::new(path.as_str()).join("index.js");
-
-    if path.is_file() {
-        let file = std::fs::read(path);
-
-        match file {
-            Ok(file) => Response::builder()
-                .status(StatusCode::OK)
-                .header(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_str("text/javascript").unwrap(),
-                )
-                .body(body::boxed(Full::from(file)))
-                .unwrap(),
-            Err(_e) => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(body::boxed(Empty::new()))
-                .unwrap(),
-        }
-    } else {
-        Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(body::boxed(Empty::new()))
-            .unwrap()
-    }
 }
