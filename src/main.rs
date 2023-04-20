@@ -1,5 +1,14 @@
+mod api;
+mod db;
+mod greeting;
+mod package;
+
 use std::path::Path;
-use store::Store;
+use std::sync::Arc;
+
+use object_store::local::LocalFileSystem;
+use surrealdb::opt::auth::Root;
+use surrealdb::{engine::remote::ws::Ws, Surreal};
 
 use axum::{
     body::{self, Empty, Full},
@@ -10,24 +19,15 @@ use axum::{
     Router,
 };
 
-mod app_state;
-mod pypa;
-mod simple;
-mod store;
-
-use app_state::AppState;
-use object_store::local::LocalFileSystem;
-use simple::{index, upload};
-use std::sync::Arc;
-
-use surrealdb::opt::auth::Root;
-use surrealdb::{engine::remote::ws::Ws, Surreal};
+use api::{index, upload, AppState};
+use db::Store;
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
     let static_dir = String::from("./static");
+    println!("{}", greeting::LOGO);
     let server_addr = "127.0.0.1:8080".parse().unwrap();
 
     log::info!("Serve API at {}", server_addr);

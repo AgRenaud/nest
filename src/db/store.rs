@@ -1,11 +1,11 @@
-use crate::pypa::{self, CoreMetadata, Package};
+use crate::package::{CoreMetadata, Package};
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use object_store::ObjectStore;
-use surrealdb::{engine::remote::ws::Client, sql::{Thing, Id}, Error, Surreal};
+use surrealdb::{engine::remote::ws::Client, sql::Thing, Error, Surreal};
 
 pub struct PackageError;
 
