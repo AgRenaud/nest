@@ -1427,6 +1427,7 @@ dependencies = [
  "axum_typed_multipart",
  "bytes",
  "env_logger",
+ "futures",
  "httpc-test",
  "log",
  "object_store",

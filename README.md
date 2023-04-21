@@ -12,9 +12,10 @@ Then run the server with `cargo run`
 
 ## Roadmap
 
-### Core features
-- [ ] [PyPA Specifications](https://packaging.python.org/en/latest/specifications/)
+### Core features 
+- [ ] [PyPA Specifications](https://packaging.python.org/en/latest/specifications/) 
 - [ ] Simple Index Interface
+    - [ ] [PEP 301](https://peps.python.org/pep-0301)
     - [ ] [PEP 503](https://peps.python.org/pep-0503/)
     - [ ] [PEP 592](https://peps.python.org/pep-0592/)
     - [ ] [PEP 629](https://peps.python.org/pep-0629/)
@@ -35,6 +36,5 @@ Then run the server with `cargo run`
 - Strong documentation for deployement with local file storage and how to scale with distributed object storage.
 
 ## Useful links
-- https://packaging.python.org/en/latest/
 - https://surrealdb.com/docs/
 - https://docs.rs/axum/latest/axum/
