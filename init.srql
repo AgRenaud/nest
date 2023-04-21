@@ -1,14 +1,14 @@
+-- Create a new namespace 
 BEGIN TRANSACTION;
 
--- Create a new namespace 
 DEFINE NAMESPACE global;
-DEFINE DATABASE packages;
+DEFINE DATABASE repository;
 
 -- Switch to database packages in the new namespace
-USE NS global DB packages;
+USE NS global DB repository;
 
--- Define projects
-DEFINE TABLE projects SCHEMALESS;
+-- Define project
+DEFINE TABLE projects SCHEMAFULL;
 DEFINE FIELD name ON TABLE projects TYPE string ASSERT $value != NONE;
 DEFINE INDEX projectNameIndex ON TABLE projects COLUMNS name UNIQUE;
 
@@ -17,12 +17,24 @@ DEFINE TABLE classifiers SCHEMAFULL;
 DEFINE FIELD name ON TABLE classifiers TYPE string ASSERT $value != NONE;
 DEFINE INDEX classifierNameIndex ON TABLE classifiers COLUMNS name UNIQUE;
 
--- Define Package File
-DEFINE TABLE pkg_file SCHEMAFULL;
-DEFINE FIELD filename ON TABLE pkg_file TYPE string ASSERT $value != NONE;
-DEFINE INDEX filenamePkgFileIndex ON TABLE pkg_file COLUMNS filename UNIQUE; 
-
 -- Define packages
-DEFINE TABLE pkg_metadata SCHEMALESS;
+DEFINE TABLE pkg_versions SCHEMALESS;
+
+DEFINE TABLE pkg_dist SCHEMALESS;
+DEFINE FIELD filename ON TABLE pkg_dist TYPE string ASSERT $value != NONE;
+DEFINE INDEX filenamePkgDistIndex ON TABLE pkg_dist COLUMNS filename UNIQUE; 
+
+-- Define Relations
+DEFINE TABLE has_versions SCHEMALESS;
+DEFINE FIELD in ON TABLE has_versions TYPE record(projects) ASSERT $value != NONE;
+DEFINE FIELD out ON TABLE has_versions TYPE record(pkg_versions) ASSERT $value != NONE;
+
+DEFINE TABLE has_dists SCHEMALESS;
+DEFINE FIELD in ON TABLE has_dists TYPE record(pkg_versions) ASSERT $value != NONE;
+DEFINE FIELD out ON TABLE has_dists TYPE record(pkg_dist) ASSERT $value != NONE;
+
+DEFINE TABLE is_classified SCHEMALESS;
+DEFINE FIELD in ON TABLE is_classified TYPE record(pkg_versions) ASSERT $value != NONE;
+DEFINE FIELD out ON TABLE is_classified TYPE record(classifiers) ASSERT $value != NONE;
 
 COMMIT TRANSACTION;
