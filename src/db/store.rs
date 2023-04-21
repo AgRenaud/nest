@@ -1,9 +1,10 @@
-use crate::package::{CoreMetadata, Package};
+use crate::package::{self, Package};
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures::future;
 use object_store::ObjectStore;
 use surrealdb::{engine::remote::ws::Client, sql::Thing, Error, Surreal};
 
@@ -52,8 +53,8 @@ struct PkgMetadata {
     obsoletes_dists: Vec<String>,
 }
 
-impl From<CoreMetadata> for PkgMetadata {
-    fn from(value: CoreMetadata) -> Self {
+impl From<package::CoreMetadata> for PkgMetadata {
+    fn from(value: package::CoreMetadata) -> Self {
         PkgMetadata {
             metadata_version: value.metadata_version,
             name: value.name,
@@ -110,50 +111,22 @@ impl Store {
 #[async_trait]
 #[warn(unused_must_use)]
 impl SimpleStore for Store {
+
     async fn upload_package(&self, package: Package) -> Result<(), PackageError> {
-        log::debug!("Uploading package {} - {}", &package.metadata.name, &package.metadata.version);
+        log::debug!(
+            "Uploading package {} - {}",
+            &package.metadata.name,
+            &package.metadata.version
+        );
 
         let project_name = package.metadata.name.clone();
         let classifiers = package.metadata.classifiers.clone();
         let pkg_metadata: PkgMetadata = package.metadata.into();
 
-        if !self.project_exists(&project_name).await {
-            log::debug!("Creating project {}", &project_name);
-            let _project: Result<Project, Error> = self
-                .db
-                .create(("projects", &project_name))
-                .content(Project {
-                    name: project_name.clone(),
-                })
-                .await;
-        }
+        let project = self.add_or_select_project(project_name).await;
+        let classifiers = self.add_or_select_classifiers(classifiers).await;
 
-        for classifier in classifiers.into_iter() {
-            let classifier_value = classifier.0;
-
-            let classifier: Option<Classifier> = self
-                .db
-                .query("SELECT * FROM classifiers WHERE name=$value")
-                .bind(("value", &classifier_value))
-                .await
-                .unwrap()
-                .take(0)
-                .unwrap();
-
-            if classifier.is_none() {
-                let _classifier: Result<Classifier, Error> = self
-                    .db
-                    .create("classifiers")
-                    .content(Classifier {
-                        name: classifier_value,
-                    })
-                    .await;
-            } else {
-                log::debug!("Classfier '{}' already exists", classifier_value);
-            }
-        }
-
-        let metadata_record: Record = self
+        let _metadata_record: Record = self
             .db
             .create("pkg_metadata")
             .content(pkg_metadata)
@@ -173,9 +146,49 @@ impl SimpleStore for Store {
 }
 
 impl Store {
-    async fn project_exists(&self, project_name: &str) -> bool {
-        let project: Option<Project> = self.db.select(("projects", project_name)).await.unwrap();
+    
+    async fn add_or_select_project(&self, name: String) -> Record {
+        let project: Option<Record> = self.db.select(("projects", &name)).await.unwrap();
 
-        project.is_some()
+        match project {
+            Some(p) => p,
+            None => {
+                let project: Result<Record, Error> = self
+                    .db
+                    .create("projects")
+                    .content(Project {
+                        name: name.clone(),
+                    })
+                    .await;
+                let project = project.unwrap();
+                project
+            }
+        }
+    }
+
+    async fn add_or_select_classifier(&self, classifier: &package::Classifier) -> Record {
+        let mut req = self
+            .db
+            .query("SELECT id FROM classifiers WHERE name=$value")
+            .bind(("value", &classifier.0))
+            .await
+            .unwrap();
+
+        let record: Option<Record> = req.take(0).unwrap();
+
+        match record {
+            Some(r) => r,
+            None => todo!()
+        }
+    }
+
+    async fn add_or_select_classifiers(&self, classifiers: Vec<package::Classifier>) -> Vec<Record> {
+        let records = classifiers
+            .iter()
+            .map(|c| self.add_or_select_classifier(c) );
+
+        let records = future::join_all(records).await; 
+
+        records
     }
 }

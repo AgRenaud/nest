@@ -1,28 +1,18 @@
 //
 use bytes::Bytes;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Classifier(pub String);
-#[derive(Debug)]
 pub struct SupportedPlateform(pub String);
-#[derive(Debug)]
 pub struct Dynamic(pub String);
-#[derive(Debug)]
 pub struct Platform(pub String);
-#[derive(Debug)]
 pub struct RequiresDist(pub String);
-#[derive(Debug)]
 pub struct RequiresExternal(pub String);
-#[derive(Debug)]
 pub struct ProjectURL(pub String);
-#[derive(Debug)]
 pub struct ProvidesExtra(pub String);
-#[derive(Debug)]
 pub struct ProvidesDist(pub String);
-#[derive(Debug)]
 pub struct ObsoletesDist(pub String);
 
-#[derive(Debug)]
 pub struct CoreMetadata {
     // - Metadata-Version
     // New in version 1.0.
@@ -331,13 +321,11 @@ pub struct CoreMetadata {
     pub obsoletes_dists: Vec<ObsoletesDist>,
 }
 
-#[derive(Debug)]
 pub struct PkgFile {
     pub filename: String,
     pub content: Bytes,
 }
 
-#[derive(Debug)]
 pub struct Package {
     pub metadata: CoreMetadata,
     pub pkg_file: PkgFile,

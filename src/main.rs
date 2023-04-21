@@ -18,7 +18,6 @@ use db::Store;
 async fn main() {
     env_logger::init();
 
-    let static_dir = String::from("./static");
     println!("{}", greeting::LOGO);
     let server_addr = "127.0.0.1:8080".parse().unwrap();
 
@@ -39,7 +38,7 @@ async fn main() {
     .await
     .expect("Unable to connect to db.");
     db.use_ns("global")
-        .use_db("packages")
+        .use_db("repository")
         .await
         .expect("Unable to get namespace and database");
 
@@ -47,7 +46,7 @@ async fn main() {
 
     let store = Arc::new(Store::new(db, store));
 
-    let state = SimpleController { static_dir, store };
+    let state = SimpleController { store };
 
     let app = Router::new().merge(simple_routes(state.clone()));
 
