@@ -121,17 +121,18 @@ impl SimpleStore for Store {
 
         let project_name = package.metadata.name.clone();
         let classifiers = package.metadata.classifiers.clone();
-        let pkg_metadata: PkgMetadata = package.metadata.into();
+        let pkg_metadata = package.metadata;
 
         let project = self.add_or_select_project(project_name).await;
         let classifiers = self.add_or_select_classifiers(classifiers).await;
 
-        let _metadata_record: Record = self
-            .db
-            .create("pkg_metadata")
-            .content(pkg_metadata)
-            .await
-            .unwrap();
+        let pkg_version = self.add_or_select_pkg_version(pkg_metadata);
+        // let _metadata_record: Record = self
+        //     .db
+        //     .create("pkg_metadata")
+        //     .content(pkg_metadata)
+        //     .await
+        //     .unwrap();
 
         // let relation_record = self
         //     .db
@@ -155,7 +156,7 @@ impl Store {
             None => {
                 let project: Result<Record, Error> = self
                     .db
-                    .create("projects")
+                    .create(("projects", &name))
                     .content(Project {
                         name: name.clone(),
                     })
@@ -178,7 +179,16 @@ impl Store {
 
         match record {
             Some(r) => r,
-            None => todo!()
+            None => {
+                let classifier = self
+                    .db
+                    .create("classifiers")
+                    .content(Classifier {
+                        name: classifier.0.clone()
+                    })
+                    .await;
+                classifier.unwrap()
+            }
         }
     }
 
@@ -190,5 +200,20 @@ impl Store {
         let records = future::join_all(records).await; 
 
         records
+    }
+
+    async fn add_or_select_pkg_version(&self, metadata: package::CoreMetadata) -> Record {
+        let record: Option<Record> = self
+            .db
+            .query("SELECT id FROM pkg_versions WHERE name=$name AND version=$version")
+            .bind(("name", metadata.name.clone()))
+            .bind(("version", metadata.version.clone()))
+            .await
+            .unwrap().take(0).unwrap();
+
+        match record {
+            Some(r) => todo!("Update pkg_versions (Get latest push)"),
+            None => todo!("Create new pkg_version")
+        }
     }
 }

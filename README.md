@@ -6,7 +6,7 @@ Python Package Index in `rust` 🦀
 
 To run the server locally, first run `surrealdb` instance with `docker-compose up -d`
 
-Then run the server with `cargo run`
+Then run the server with `cargo run`.
 
 > You can test the server with the python's test module in the folder `my-module`.
 

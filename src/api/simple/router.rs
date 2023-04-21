@@ -25,7 +25,3 @@ async fn list_packages(State(_state): State<SimpleController>) -> Json<SimpleInd
 
     Json(SimpleIndex { packages })
 }
-
-async fn list_package_version(State(_state): State<SimpleController>) {
-    todo!()
-}
