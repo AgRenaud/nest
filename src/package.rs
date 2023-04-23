@@ -3,9 +3,6 @@ use bytes::Bytes;
 
 #[derive(Clone)]
 pub struct Classifier(pub String);
-pub struct SupportedPlateform(pub String);
-pub struct Dynamic(pub String);
-pub struct Platform(pub String);
 pub struct RequiresDist(pub String);
 pub struct RequiresExternal(pub String);
 pub struct ProjectURL(pub String);
