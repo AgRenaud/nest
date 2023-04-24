@@ -20,8 +20,10 @@ async fn upload(State(state): State<SimpleController>, data: TypedMultipart<Requ
     let _query = state.store.upload_package(package).await;
 }
 
-async fn list_packages(State(_state): State<SimpleController>) -> Json<SimpleIndex> {
-    let packages: Vec<String> = Vec::new();
+async fn list_packages(State(state): State<SimpleController>) -> Json<SimpleIndex> {
+    let projects = state.store.get_projects().await.unwrap();
+
+    let packages = projects.iter().map(|p| p.name.to_owned()).collect();
 
     Json(SimpleIndex { packages })
 }

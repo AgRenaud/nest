@@ -6,12 +6,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::future;
 use object_store::{path::Path, ObjectStore};
-use surrealdb::{
-    engine::remote::ws::Client,
-    sql::{Id, Thing},
-    Error, Surreal,
-};
+use surrealdb::{engine::remote::ws::Client, sql::Thing, Error, Surreal};
 
+#[derive(Debug)]
 pub struct PackageError;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,18 +17,18 @@ struct Record {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Project {
-    name: String,
+pub struct Project {
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Classifier {
-    name: String,
+pub struct Classifier {
+    pub name: String,
 }
 
 #[derive(Serialize)]
-struct PkgDist {
-    filename: String,
+pub struct PkgDist {
+    pub filename: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -103,6 +100,8 @@ impl From<package::CoreMetadata> for PkgVersion {
 #[async_trait]
 pub trait SimpleStore: Send + Sync + 'static {
     async fn upload_package(&self, package: package::Package) -> Result<(), PackageError>;
+    async fn get_projects(&self) -> Result<Vec<Project>, PackageError>;
+    async fn get_dists(&self, project: String) -> Result<Vec<PkgDist>, PackageError>;
 }
 
 #[derive(Clone)]
@@ -144,6 +143,16 @@ impl SimpleStore for Store {
             .await;
 
         Ok(())
+    }
+
+    async fn get_projects(&self) -> Result<Vec<Project>, PackageError> {
+        let projects: Vec<Project> = self.db.select("projects").await.unwrap();
+
+        Ok(projects)
+    }
+
+    async fn get_dists(&self, project: String) -> Result<Vec<PkgDist>, PackageError> {
+        todo!()
     }
 }
 
