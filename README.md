@@ -4,7 +4,9 @@ Python Package Index in `rust` 🦀
 
 ## Getting Started
 
-To run the server locally, first run `surrealdb` instance with `docker-compose up -d`
+To run the server locally, first run `surrealdb` instance with `docker-compose up -d`.
+
+Then you can initialize the database with `python init.py`
 
 Then run the server with `cargo run`.
 
@@ -13,7 +15,6 @@ Then run the server with `cargo run`.
 ## Roadmap
 
 ### Core features 
-- [ ] [PyPA Specifications](https://packaging.python.org/en/latest/specifications/) 
 - [ ] Simple Index Interface
     - [ ] [PEP 301](https://peps.python.org/pep-0301)
     - [ ] [PEP 503](https://peps.python.org/pep-0503/)
