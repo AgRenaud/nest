@@ -135,10 +135,10 @@ impl SimpleStore for Store {
         let pkg_version = self
             .add_or_update_pkg_version(&project.id, pkg_metadata)
             .await;
-        let pkg_dist = self
+        let _pkg_dist = self
             .add_or_update_pkg_dist(&pkg_version.id, &pkg_file)
             .await;
-        let classifiers = self
+        let _classifiers = self
             .add_or_select_classifiers(&pkg_version.id, classifiers)
             .await;
 
@@ -151,7 +151,7 @@ impl SimpleStore for Store {
         Ok(projects)
     }
 
-    async fn get_dists(&self, project: String) -> Result<Vec<PkgDist>, PackageError> {
+    async fn get_dists(&self, _project: String) -> Result<Vec<PkgDist>, PackageError> {
         todo!()
     }
 }
@@ -248,7 +248,7 @@ impl Store {
 
     async fn add_or_select_classifier(
         &self,
-        pkg_version: &Thing,
+        _pkg_version: &Thing,
         classifier: &package::Classifier,
     ) -> Record {
         let mut req = self
@@ -283,7 +283,7 @@ impl Store {
         path.push_str(filename.as_str());
         let path = Path::from(path);
 
-        let upload = self.store.put(&path, content.to_owned()).await.unwrap();
+        let _upload = self.store.put(&path, content.to_owned()).await.unwrap();
 
         let pkg_dist = PkgDist {
             filename: filename.to_owned(),
