@@ -5,8 +5,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::future;
-use object_store::ObjectStore;
-use surrealdb::{engine::remote::ws::Client, sql::{Thing, Id}, Error, Surreal};
+use object_store::{path::Path, ObjectStore};
+use surrealdb::{
+    engine::remote::ws::Client,
+    sql::{Id, Thing},
+    Error, Surreal,
+};
 
 pub struct PackageError;
 
@@ -27,15 +31,7 @@ struct Classifier {
 
 #[derive(Serialize)]
 struct PkgDist {
-   filename: String, 
-}
-
-impl From<package::PkgFile> for PkgDist {
-    fn from(value: package::PkgFile) -> Self {
-        PkgDist {
-            filename: value.filename
-        }
-    }
+    filename: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -124,7 +120,6 @@ impl Store {
 #[async_trait]
 #[warn(unused_must_use)]
 impl SimpleStore for Store {
-
     async fn upload_package(&self, package: package::Package) -> Result<(), PackageError> {
         log::debug!(
             "Uploading package {} - {}",
@@ -138,16 +133,21 @@ impl SimpleStore for Store {
         let pkg_file = package.pkg_file;
 
         let project = self.add_or_select_project(project_name).await;
-        let pkg_version = self.add_or_update_pkg_version(&project.id, pkg_metadata).await;
-        let pkg_dist = self.add_or_update_pkg_dist(&pkg_version.id, pkg_file).await;
-        let classifiers = self.add_or_select_classifiers(&pkg_version.id, classifiers).await;
+        let pkg_version = self
+            .add_or_update_pkg_version(&project.id, pkg_metadata)
+            .await;
+        let pkg_dist = self
+            .add_or_update_pkg_dist(&pkg_version.id, &pkg_file)
+            .await;
+        let classifiers = self
+            .add_or_select_classifiers(&pkg_version.id, classifiers)
+            .await;
 
         Ok(())
     }
 }
 
 impl Store {
-    
     async fn add_or_select_project(&self, name: String) -> Record {
         let project: Option<Record> = self.db.select(("projects", &name)).await.unwrap();
 
@@ -157,40 +157,47 @@ impl Store {
                 let project: Result<Record, Error> = self
                     .db
                     .create(("projects", &name))
-                    .content(Project {
-                        name: name.clone(),
-                    })
+                    .content(Project { name: name.clone() })
                     .await;
                 let project = project.unwrap();
                 project
             }
         }
     }
-    
-    async fn add_or_update_pkg_version(&self, project_id: &Thing, metadata: package::CoreMetadata) -> Record {
+
+    async fn add_or_update_pkg_version(
+        &self,
+        project_id: &Thing,
+        metadata: package::CoreMetadata,
+    ) -> Record {
         let record: Option<Record> = self
             .db
             .query("SELECT id FROM pkg_versions WHERE name=$name AND version=$version")
             .bind(("name", metadata.name.clone()))
             .bind(("version", metadata.version.clone()))
             .await
-            .unwrap().take(0).unwrap();
-        
+            .unwrap()
+            .take(0)
+            .unwrap();
+
         match record {
             Some(r) => {
                 let pkg_metadata: PkgVersion = metadata.into();
-                
+
                 let record = self
                     .db
                     .update(("pkg_versions", r.id))
                     .content(pkg_metadata)
                     .await;
                 record.unwrap()
-            },
+            }
             None => {
                 let pkg_metadata: PkgVersion = metadata.into();
 
-                let record: Option<Record> = self.db.query("
+                let record: Option<Record> = self
+                    .db
+                    .query(
+                        "
                     BEGIN TRANSACTION;
 
                     LET $new_version = (CREATE pkg_versions CONTENT $pkg_metadata);
@@ -202,30 +209,39 @@ impl Store {
                     RETURN $new_version;
 
                     COMMIT TRANSACTION;
-                ")
-                .bind(("pkg_metadata", pkg_metadata))
-                .bind(("project_id", project_id))
-                .await
-                .unwrap()
-                .take(0)
-                .unwrap();
-                
+                ",
+                    )
+                    .bind(("pkg_metadata", pkg_metadata))
+                    .bind(("project_id", project_id))
+                    .await
+                    .unwrap()
+                    .take(0)
+                    .unwrap();
+
                 record.unwrap()
             }
         }
     }
-    
-    async fn add_or_select_classifiers(&self, pkg_version: &Thing, classifiers: Vec<package::Classifier>) -> Vec<Record> {
+
+    async fn add_or_select_classifiers(
+        &self,
+        pkg_version: &Thing,
+        classifiers: Vec<package::Classifier>,
+    ) -> Vec<Record> {
         let records = classifiers
             .iter()
-            .map(|c| self.add_or_select_classifier(pkg_version, c) );
+            .map(|c| self.add_or_select_classifier(pkg_version, c));
 
-        let records = future::join_all(records).await; 
+        let records = future::join_all(records).await;
 
         records
     }
 
-    async fn add_or_select_classifier(&self, pkg_version: &Thing, classifier: &package::Classifier) -> Record {
+    async fn add_or_select_classifier(
+        &self,
+        pkg_version: &Thing,
+        classifier: &package::Classifier,
+    ) -> Record {
         let mut req = self
             .db
             .query("SELECT id FROM classifiers WHERE name=$value")
@@ -242,7 +258,7 @@ impl Store {
                     .db
                     .create("classifiers")
                     .content(Classifier {
-                        name: classifier.0.clone()
+                        name: classifier.0.clone(),
                     })
                     .await;
                 classifier.unwrap()
@@ -250,10 +266,24 @@ impl Store {
         }
     }
 
-    async fn add_or_update_pkg_dist(&self, pkg_version: &Thing, file: package::PkgFile) -> Record {
-        let pkg_dist: PkgDist = file.into();
+    async fn add_or_update_pkg_dist(&self, pkg_version: &Thing, file: &package::PkgFile) -> Record {
+        let filename = &file.filename;
+        let content = &file.content;
 
-        let record: Option<Record> = self.db.query("
+        let mut path = String::from("global/repository/");
+        path.push_str(filename.as_str());
+        let path = Path::from(path);
+
+        let upload = self.store.put(&path, content.to_owned()).await.unwrap();
+
+        let pkg_dist = PkgDist {
+            filename: filename.to_owned(),
+        };
+
+        let record: Option<Record> = self
+            .db
+            .query(
+                "
             BEGIN TRANSACTION;
             LET $new_dist = (CREATE pkg_dists CONTENT $pkg_dist);
             LET $new_dist_id = $new_dist.id;
@@ -263,14 +293,15 @@ impl Store {
             RETURN $new_dist;
 
             COMMIT TRANSACTION;
-        ")
-        .bind(("pkg_dist", pkg_dist))
-        .bind(("pkg_version", pkg_version))
-        .await
-        .unwrap()
-        .take(0)
-        .unwrap();
-                
+        ",
+            )
+            .bind(("pkg_dist", pkg_dist))
+            .bind(("pkg_version", pkg_version))
+            .await
+            .unwrap()
+            .take(0)
+            .unwrap();
+
         log::debug!("{:?}", &record);
 
         record.unwrap()
