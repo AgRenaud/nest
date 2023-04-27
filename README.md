@@ -15,7 +15,7 @@ Then run the server with `cargo run`.
 ## Roadmap
 
 ### Core features 
-- [ ] Simple Index Interface
+- Simple Index Interface
     - [ ] [PEP 301](https://peps.python.org/pep-0301)
     - [ ] [PEP 503](https://peps.python.org/pep-0503/)
     - [ ] [PEP 592](https://peps.python.org/pep-0592/)
@@ -29,7 +29,7 @@ Then run the server with `cargo run`.
 
 ### Additionals features
 - [ ] Packages statistics
-- [ ] Enable multi project (multi index)
+- [ ] Enable multi project (multi workspaces / indexes)
 
 ### Some ideas
 - Serving front-end with `Leptos`. (More Rust)

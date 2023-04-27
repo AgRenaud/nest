@@ -26,9 +26,14 @@ pub struct Classifier {
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PkgDist {
     pub filename: String,
+}
+
+#[derive(Deserialize)]
+pub struct Dists {
+    dists: Vec<PkgDist>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -152,16 +157,38 @@ impl SimpleStore for Store {
     }
 
     async fn get_dists(&self, project: String) -> Result<Vec<PkgDist>, PackageError> {
+        let project = Thing {
+            tb: String::from("projects"),
+            id: surrealdb::sql::Id::String(project),
+        };
         let mut result = self
             .db
-            .query(r#"SELECT ->has_versions->pkg_versions->has_dists->pkg_dists.* AS dists FROM projects:$project_name;"#)
+            .query(r#"SELECT ->has_versions->pkg_versions->has_dists->pkg_dists.* AS dists FROM $project_name;"#)
             .bind(("project_name", project))
             .await
             .unwrap();
 
-        let dists: Vec<PkgDist> = result.take(0).unwrap();
-
-        Ok(dists)
+        
+        let dists: Option<Dists> = result.take(0).unwrap();
+        let dists = dists.unwrap();
+        /*
+        [
+            {
+                "dists": [
+                    {
+                        "filename": "my_module-0.1.0-cp310-cp310-manylinux_2_31_x86_64.whl",
+                        "id": "pkg_dists:nc8x935asm9lue7jyorb"
+                    },
+                    {
+                        "filename": "my_module-0.1.0.tar.gz",
+                        "id": "pkg_dists:qbb9cllwtlesjr03cpar"
+                    }
+                ]
+            }
+        ]
+         */
+        
+        Ok(dists.dists)
     }
 }
 

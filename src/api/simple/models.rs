@@ -12,6 +12,7 @@ pub struct SimpleIndex {
     pub packages: Vec<String>,
 }
 
+#[derive(Serialize)]
 pub struct ProjectDists {
     pub dists: Vec<String>,
 }

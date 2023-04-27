@@ -32,8 +32,8 @@ async fn list_packages(State(state): State<SimpleController>) -> Json<SimpleInde
 }
 
 async fn list_dists(
+    Path(project): Path<String>,
     State(state): State<SimpleController>,
-    Path(project): Path<String>
 ) -> Json<ProjectDists> {
     let dists = state.store.get_dists(project).await.unwrap();
 
