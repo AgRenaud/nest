@@ -12,6 +12,10 @@ pub struct SimpleIndex {
     pub packages: Vec<String>,
 }
 
+pub struct ProjectDists {
+    pub dists: Vec<String>,
+}
+
 #[derive(TryFromMultipart)]
 pub struct RequestData {
     #[form_data(field_name = ":action")]

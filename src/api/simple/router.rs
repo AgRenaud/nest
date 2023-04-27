@@ -1,16 +1,19 @@
 use crate::package::Package;
 
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::Router;
-use axum::{extract::State, response::Json};
+use axum::{extract::{State, Path}, response::Json};
 use axum_typed_multipart::TypedMultipart;
 
-use super::models::{RequestData, SimpleIndex};
+use super::models::{ProjectDists, RequestData, SimpleIndex};
 use super::SimpleController;
 
 pub fn routes(state: SimpleController) -> Router {
     Router::new()
         .route("/simple", post(upload).get(list_packages))
+        .route(
+            "/simple/:project",
+            get(list_dists))
         .with_state(state)
 }
 
@@ -26,4 +29,15 @@ async fn list_packages(State(state): State<SimpleController>) -> Json<SimpleInde
     let packages = projects.iter().map(|p| p.name.to_owned()).collect();
 
     Json(SimpleIndex { packages })
+}
+
+async fn list_dists(
+    State(state): State<SimpleController>,
+    Path(project): Path<String>
+) -> Json<ProjectDists> {
+    let dists = state.store.get_dists(project).await.unwrap();
+
+    let dists = dists.iter().map(|d| d.filename.to_owned()).collect();
+
+    Json(ProjectDists { dists })
 }

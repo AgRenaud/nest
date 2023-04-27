@@ -26,7 +26,7 @@ pub struct Classifier {
     pub name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct PkgDist {
     pub filename: String,
 }
@@ -151,8 +151,17 @@ impl SimpleStore for Store {
         Ok(projects)
     }
 
-    async fn get_dists(&self, _project: String) -> Result<Vec<PkgDist>, PackageError> {
-        todo!()
+    async fn get_dists(&self, project: String) -> Result<Vec<PkgDist>, PackageError> {
+        let mut result = self
+            .db
+            .query(r#"SELECT ->has_versions->pkg_versions->has_dists->pkg_dists.* AS dists FROM projects:$project_name;"#)
+            .bind(("project_name", project))
+            .await
+            .unwrap();
+
+        let dists: Vec<PkgDist> = result.take(0).unwrap();
+
+        Ok(dists)
     }
 }
 
