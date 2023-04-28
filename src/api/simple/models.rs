@@ -74,11 +74,7 @@ impl Into<Package> for RequestData {
     fn into(self) -> Package {
         fn parse_string(s: Option<String>) -> Vec<String> {
             match s {
-                Some(elt) => elt
-                    .split("\r\n")
-                    .into_iter()
-                    .map(|e| e.to_string())
-                    .collect(),
+                Some(elt) => elt.split("\r\n").map(|e| e.to_string()).collect(),
                 _ => Vec::new(),
             }
         }

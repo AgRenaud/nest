@@ -2,7 +2,10 @@ use crate::package::Package;
 
 use axum::routing::{get, post};
 use axum::Router;
-use axum::{extract::{State, Path}, response::Json};
+use axum::{
+    extract::{Path, State},
+    response::Json,
+};
 use axum_typed_multipart::TypedMultipart;
 
 use super::models::{ProjectDists, RequestData, SimpleIndex};
@@ -11,9 +14,7 @@ use super::SimpleController;
 pub fn routes(state: SimpleController) -> Router {
     Router::new()
         .route("/simple", post(upload).get(list_packages))
-        .route(
-            "/simple/:project",
-            get(list_dists))
+        .route("/simple/:project", get(list_dists))
         .with_state(state)
 }
 

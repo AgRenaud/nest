@@ -33,7 +33,7 @@ pub struct PkgDist {
 
 #[derive(Deserialize)]
 pub struct Dists {
-    dists: Vec<PkgDist>
+    dists: Vec<PkgDist>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -168,26 +168,9 @@ impl SimpleStore for Store {
             .await
             .unwrap();
 
-        
         let dists: Option<Dists> = result.take(0).unwrap();
         let dists = dists.unwrap();
-        /*
-        [
-            {
-                "dists": [
-                    {
-                        "filename": "my_module-0.1.0-cp310-cp310-manylinux_2_31_x86_64.whl",
-                        "id": "pkg_dists:nc8x935asm9lue7jyorb"
-                    },
-                    {
-                        "filename": "my_module-0.1.0.tar.gz",
-                        "id": "pkg_dists:qbb9cllwtlesjr03cpar"
-                    }
-                ]
-            }
-        ]
-         */
-        
+
         Ok(dists.dists)
     }
 }
@@ -204,8 +187,7 @@ impl Store {
                     .create(("projects", &name))
                     .content(Project { name: name.clone() })
                     .await;
-                let project = project.unwrap();
-                project
+                project.unwrap()
             }
         }
     }
@@ -277,9 +259,7 @@ impl Store {
             .iter()
             .map(|c| self.add_or_select_classifier(pkg_version, c));
 
-        let records = future::join_all(records).await;
-
-        records
+        future::join_all(records).await
     }
 
     async fn add_or_select_classifier(
@@ -319,7 +299,7 @@ impl Store {
         path.push_str(filename.as_str());
         let path = Path::from(path);
 
-        let _upload = self.store.put(&path, content.to_owned()).await.unwrap();
+        self.store.put(&path, content.to_owned()).await.unwrap();
 
         let pkg_dist = PkgDist {
             filename: filename.to_owned(),
