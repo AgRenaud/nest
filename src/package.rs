@@ -1,15 +1,7 @@
-//
 use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct Classifier(pub String);
-pub struct RequiresDist(pub String);
-pub struct RequiresExternal(pub String);
-pub struct ProjectURL(pub String);
-pub struct ProvidesExtra(pub String);
-pub struct ProvidesDist(pub String);
-pub struct ObsoletesDist(pub String);
-
+#[derive(Serialize, Deserialize)]
 pub struct CoreMetadata {
     // - Metadata-Version
     // New in version 1.0.
@@ -48,7 +40,7 @@ pub struct CoreMetadata {
 
     // - Platform (multiple use)
     // New in version 1.0.
-    // A Platform specification describing an operating system supported by the distribution which is not listed in the “Operating System” Trove classifiers. See “Classifier” below.
+    // A Platform specification describing an operating system supported by the distribution which is not listed in the “Operating System” Trove Strings. See String” below.
     //
     // Examples:
     //
@@ -171,7 +163,7 @@ pub struct CoreMetadata {
 
     // - License
     // New in version 1.0.
-    // Text indicating the license covering the distribution where the license is not a selection from the “License” Trove classifiers. See “Classifier” below. This field may also be used to specify a particular version of a license which is named via the Classifier field, or to indicate a variation or exception to such a license.
+    // Text indicating the license covering the distribution where the license is not a selection from the “License” Trove Strings. See String” below. This field may also be used to specify a particular version of a license which is named via the String field, or to indicate a variation or exception to such a license.
     //
     // Examples:
     //
@@ -184,14 +176,14 @@ pub struct CoreMetadata {
 
     // - Classifier (multiple use)
     // New in version 1.1.
-    // Each entry is a string giving a single classification value for the distribution. Classifiers are described in PEP 301, and the Python Package Index publishes a dynamic list of currently defined classifiers.
+    // Each entry is a classigier giving a single classification value for the distribution. Classifiers are described in PEP 301, and the Python Package Index publishes a dynamic list of currently defined Strings.
     // This field may be followed by an environment marker after a semicolon.
     //
     // Examples:
     //
     // Classifier: Development Status :: 4 - Beta
     // Classifier: Environment :: Console (Text Based)
-    pub classifiers: Vec<Classifier>,
+    pub classifiers: Vec<String>,
 
     // - Requires-Dist (multiple use)
     // New in version 1.2.
@@ -215,7 +207,7 @@ pub struct CoreMetadata {
     // Requires-Dist: PasteDeploy
     // Requires-Dist: zope.interface (>3.5.0)
     // Requires-Dist: pywin32 >1.0; sys_platform == 'win32'
-    pub requires_dists: Vec<RequiresDist>,
+    pub requires_dists: Vec<String>,
 
     // - Requires-Python
     // New in version 1.2.
@@ -244,7 +236,7 @@ pub struct CoreMetadata {
     // Requires-External: C
     // Requires-External: libpng (>=1.5)
     // Requires-External: make; sys_platform != "win32"
-    pub requires_externals: Vec<RequiresExternal>,
+    pub requires_externals: Vec<String>,
 
     // - Project-URL (multiple-use)
     // New in version 1.2.
@@ -255,7 +247,7 @@ pub struct CoreMetadata {
     // Project-URL: Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
     //
     // The label is free text limited to 32 characters.
-    pub project_urls: Vec<ProjectURL>,
+    pub project_urls: Vec<String>,
 
     // - Provides-Extra (multiple use)
     // New in version 2.1.
@@ -283,7 +275,7 @@ pub struct CoreMetadata {
     // Rarely Used Fields
     // The fields in this section are currently rarely used, as their design was inspired by comparable mechanisms in Linux package management systems, and it isn’t at all clear how tools should interpret them in the context of an open index server such as PyPI.
     // As a result, popular installation tools ignore them completely, which in turn means there is little incentive for package publishers to set them appropriately. However, they’re retained in the metadata specification, as they’re still potentially useful for informational purposes, and can also be used for their originally intended purpose in combination with a curated package repository.
-    pub provides_extras: Vec<ProvidesExtra>,
+    pub provides_extras: Vec<String>,
 
     // - Provides-Dist (multiple use)
     // New in version 1.2.
@@ -299,7 +291,7 @@ pub struct CoreMetadata {
     // Provides-Dist: OtherProject
     // Provides-Dist: AnotherProject (3.4)
     // Provides-Dist: virtual_package; python_version >= "3.4"
-    pub provides_dists: Vec<ProvidesDist>,
+    pub provides_dists: Vec<String>,
 
     // - Obsoletes-Dist (multiple use)
     // New in version 1.2.
@@ -315,15 +307,15 @@ pub struct CoreMetadata {
     // Obsoletes-Dist: OtherProject (<3.0)
     // Obsoletes-Dist: Foo; os_name == "posix"
     //
-    pub obsoletes_dists: Vec<ObsoletesDist>,
+    pub obsoletes_dists: Vec<String>,
 }
 
-pub struct PkgFile {
+pub struct File {
     pub filename: String,
     pub content: Bytes,
 }
 
-pub struct Package {
-    pub metadata: CoreMetadata,
-    pub pkg_file: PkgFile,
+pub struct Distribution {
+    pub core_metadata: CoreMetadata,
+    pub file: File,
 }

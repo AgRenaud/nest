@@ -1,0 +1,12 @@
+[application]
+host = '127.0.0.1'
+port = 8080
+
+[persistence]
+[persistence.object_storage]
+path = './simple-index'
+
+[persistence.database]
+address = '127.0.0.1:8000'
+user = 'root'
+password = 'root'

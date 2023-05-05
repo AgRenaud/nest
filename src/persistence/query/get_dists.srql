@@ -1,0 +1,11 @@
+# Get list of distribution for a given project
+
+/* Requires the following arguments :
+
+    - project_name
+
+*/
+
+LET $project = type::thing('projects', $project_name);
+
+SELECT array::distinct(->has_dists->dists.*) AS dists FROM $project;

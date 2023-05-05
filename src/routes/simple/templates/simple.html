@@ -5,9 +5,9 @@
         <title>Simple Index</title>
     </head>
     <body>
-        {{ for value in row }}
-        <a href="{ package_index_url }">{ package_name }</a>
-        {{ endfor }}
+        {% for project in projects %}
+            <a href="">{{ project }}</a>
+        {% endfor %}
     </body>
 
 
