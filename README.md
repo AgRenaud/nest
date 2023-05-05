@@ -23,8 +23,8 @@ Then run the server with `cargo run`.
     - [ ] [PEP 658 - PEP 658 – Serve Distribution Metadata in the Simple Repository API](https://peps.python.org/pep-0658/)
     - [ ] [PEP 691 -  JSON-based Simple API for Python Package Indexes](https://peps.python.org/pep-0691/)
 - Server configuration:
-    - [ ] `config.toml` 
-    - [ ] CLI 
+    - [x] `config.toml`  
+    - [ ] CLI (Migrations, Start server, ...)
 - [ ] Embed package readme to website
 - [ ] Add Mirrors (and cache?) to others python indexes.
 
