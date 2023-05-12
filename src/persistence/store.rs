@@ -33,11 +33,20 @@ pub struct Dists {
 
 #[async_trait]
 pub trait SimpleStore: Send + Sync + 'static {
-    async fn upload_package(&self, distribution: package::Distribution) -> Result<(), PackageError>;
+    async fn upload_package(&self, distribution: package::Distribution)
+        -> Result<(), PackageError>;
     async fn get_projects(&self) -> Result<Vec<ProjectName>, PackageError>;
     async fn get_dists(&self, project: &String) -> Result<Vec<PkgDist>, PackageError>;
-    async fn get_dist_file(&self, project: &String, dist: &String) -> Result<package::File, PackageError>;
-    async fn get_dist_metadata(&self, project: &String, dist: &String) -> Result<package::CoreMetadata, PackageError>;
+    async fn get_dist_file(
+        &self,
+        project: &String,
+        dist: &String,
+    ) -> Result<package::File, PackageError>;
+    async fn get_dist_metadata(
+        &self,
+        project: &String,
+        dist: &String,
+    ) -> Result<package::CoreMetadata, PackageError>;
 }
 
 #[derive(Clone)]
@@ -67,7 +76,11 @@ impl SimpleStore for Store {
         let core_metadata = distribution.core_metadata;
         let filename = distribution.file.filename;
 
-        let file_path = Path::from_iter(["simple-index", &core_metadata.name.as_str(), filename.as_str()]);
+        let file_path = Path::from_iter([
+            "simple-index",
+            (core_metadata.name.as_str()),
+            filename.as_str(),
+        ]);
         let r = self.store.put(&file_path, distribution.file.content).await;
 
         match r {
@@ -87,7 +100,7 @@ impl SimpleStore for Store {
         match transaction {
             Ok(_) => Ok(()),
             Err(_) => {
-                self.store.delete(&file_path).await;
+                self.store.delete(&file_path).await.expect("Unable to delete a file on aborted transaction.");
                 Err(PackageError)
             }
         }
@@ -119,25 +132,35 @@ impl SimpleStore for Store {
         }
     }
 
-    async fn get_dist_file(&self, project: &String, dist: &String) -> Result<package::File, PackageError> {
+    async fn get_dist_file(
+        &self,
+        project: &String,
+        dist: &String,
+    ) -> Result<package::File, PackageError> {
         let file_path = Path::from_iter(["simple-index", project.as_str(), dist.as_str()]);
         let file = self.store.get(&file_path).await;
 
         match file {
             Ok(file) => {
-
                 let content = file.bytes().await.expect("Unable to decode wheel content");
+                let filename = dist.to_owned();
 
                 Ok(package::File {
-                    filename: dist.to_owned(),
-                    content: content
+                    filename,
+                    content,
                 })
             }
-            _ => { todo!() }
+            _ => {
+                todo!()
+            }
         }
     }
 
-    async fn get_dist_metadata(&self, project: &String, dist: &String) -> Result<package::CoreMetadata, PackageError>{
+    async fn get_dist_metadata(
+        &self,
+        _project: &String,
+        _dist: &String,
+    ) -> Result<package::CoreMetadata, PackageError> {
         todo!()
     }
 }

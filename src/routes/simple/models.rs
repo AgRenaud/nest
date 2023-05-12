@@ -14,6 +14,7 @@ pub struct ProjectDists {
     pub dists: Vec<String>,
 }
 
+#[allow(dead_code)]
 #[derive(TryFromMultipart)]
 pub struct RequestData {
     #[form_data(field_name = ":action")]

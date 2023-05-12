@@ -1,25 +1,22 @@
-
 use crate::package::Distribution;
 
 use liquid;
 
-use hyper::{header, StatusCode};
 use axum::{
-    Router, TypedHeader,
     extract::{Path, State},
+    headers::{authorization::Basic, Authorization},
     response::{Html, IntoResponse},
     routing::{get, post},
-    headers::{
-        Authorization, 
-        authorization::Basic}};
+    Router, TypedHeader,
+};
 use axum_typed_multipart::TypedMultipart;
+use hyper::{header, StatusCode};
 
 use super::models::RequestData;
 use super::SimpleController;
 
 pub fn router(state: SimpleController) -> Router {
-    Router::new()
-    .to_owned()
+    Router::new()        
         .route("/simple/", post(upload).get(list_packages))
         .route("/simple/:project/", get(list_dists))
         .route("/simple/:project/:distribution", get(download_package))
@@ -81,20 +78,19 @@ async fn list_packages(State(state): State<SimpleController>) -> Html<String> {
 
 async fn download_package(
     State(state): State<SimpleController>,
-    Path((project, distribution)): Path<(String, String)>
+    Path((project, distribution)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let file = state.store.get_dist_file(&project, &distribution).await;
 
     match file {
-
         Ok(file) => {
             let content = file.content;
             let filename = file.filename.as_str();
 
-            let body = content.clone();
+            let body = content;
 
             let content_type = String::from("octet/stream; charset=utf-8");
-            let content_disposition = format!("attachment; filename=\"{}\"", filename.clone());
+            let content_disposition = format!("attachment; filename=\"{}\"", &(*filename));
 
             let headers = axum::response::AppendHeaders([
                 (header::CONTENT_TYPE, content_type),
@@ -102,7 +98,7 @@ async fn download_package(
             ]);
 
             Ok((headers, body))
-        },
+        }
         Err(_) => Err((StatusCode::NOT_FOUND, "File not found !")),
     }
 }
