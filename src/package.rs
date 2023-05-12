@@ -1,7 +1,8 @@
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use validator::{Validate, ValidationError};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Validate, Deserialize)]
 pub struct CoreMetadata {
     // - Metadata-Version
     // New in version 1.0.
@@ -25,6 +26,7 @@ pub struct CoreMetadata {
     // Name: BeagleVote
     //
     // For comparison purposes, the names should be normalized before comparing.
+    #[validate(custom = "pep_503_normalized_name")]
     pub name: String,
 
     // - Version
@@ -34,6 +36,7 @@ pub struct CoreMetadata {
     // Example:
     //
     // Version: 1.0a2
+    #[validate(custom = "pep_440_version_format")]
     pub version: String,
 
     // pub dynamics: Vec<String>,
@@ -183,6 +186,7 @@ pub struct CoreMetadata {
     //
     // Classifier: Development Status :: 4 - Beta
     // Classifier: Environment :: Console (Text Based)
+    #[validate(custom = "pep_301_valid_classifier")]
     pub classifiers: Vec<String>,
 
     // - Requires-Dist (multiple use)
@@ -318,4 +322,16 @@ pub struct File {
 pub struct Distribution {
     pub core_metadata: CoreMetadata,
     pub file: File,
+}
+
+fn pep_503_normalized_name(_name: &String) -> Result<(), ValidationError> {
+    todo!()
+}
+
+fn pep_440_version_format(_version: &String) -> Result<(), ValidationError> {
+    todo!()
+}
+
+fn pep_301_valid_classifier(_name: &Vec<String>) -> Result<(), ValidationError> {
+    todo!()
 }

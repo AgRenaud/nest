@@ -11,6 +11,7 @@ use surrealdb::{engine::remote::ws::Ws, Surreal};
 use crate::greeting;
 use crate::persistence::Store;
 use crate::routes::healthcheck::healthcheck;
+use crate::routes::home::home;
 use crate::routes::simple;
 use crate::settings;
 
@@ -46,8 +47,9 @@ impl Application {
         let store = Arc::new(Store::new(db, store));
         let state = simple::SimpleController { store };
         let app = Router::new()
-            .merge(simple::router(state))
-            .route("/healthcheck", get(healthcheck));
+            .nest("/", simple::router(state))
+            .route("/healthcheck", get(healthcheck))
+            .route("/", get(home));
 
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr).unwrap();

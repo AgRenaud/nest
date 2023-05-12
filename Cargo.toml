@@ -28,8 +28,11 @@ time = ">=0.2.23"
 hyper = "0.14.26"
 toml = "0.7.3"
 anyhow = "1"
-axum-macros = "0.3.7"
 liquid = "0.26.1"
+validator = { version = "0.16.0", features = ["derive"] }
+tower-http = { version = "0.4.0", features = ["normalize-path", "redirect"] }
+tokio-util = { version = "0.7.8", features = ["io"] }
+tokio-stream = { version = "0.1.14", features = ["tokio-util", "io-util"] }
 
 [dev-dependencies]
 anyhow = "1"

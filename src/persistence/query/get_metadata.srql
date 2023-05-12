@@ -1,0 +1,10 @@
+# Get CoreMetadata
+
+/* Requires the following arguments :
+
+    - project_name
+    - distribution
+
+*/
+
+SELECT filename FROM dists WHERE filename = $dist;

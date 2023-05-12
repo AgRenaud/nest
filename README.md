@@ -27,6 +27,7 @@ Then run the server with `cargo run`.
     - [ ] CLI (Migrations, Start server, ...)
 - [ ] Embed package readme to website
 - [ ] Add Mirrors (and cache?) to others python indexes.
+- [ ] Search package
 
 ### Additionals features
 - [ ] Packages statistics
