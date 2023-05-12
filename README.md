@@ -15,13 +15,18 @@ Then run the server with `cargo run`.
 ## Roadmap
 
 ### Core features 
+
+> `twine upload`, `poetry publish` and other similar commands should work.
+> There is no user management for the moment.
+> Simple `pip install --extra-index-url is working too`. 
+
 - Simple Index Interface
-    - [ ] [PEP 503 - Simple Repository API](https://peps.python.org/pep-0503/)
+    - [x] [PEP 503 - Simple Repository API](https://peps.python.org/pep-0503/) 
     - [ ] [PEP 592 - Adding “Yank” Support to the Simple API](https://peps.python.org/pep-0592/)
     - [x] [PEP 629 - Versioning PyPI’s Simple API](https://peps.python.org/pep-0629/)
     - [ ] [PEP 643 – Metadata for Package Source Distributions](https://peps.python.org/pep-0643/)
     - [ ] [PEP 658 - PEP 658 – Serve Distribution Metadata in the Simple Repository API](https://peps.python.org/pep-0658/)
-    - [ ] [PEP 691 -  JSON-based Simple API for Python Package Indexes](https://peps.python.org/pep-0691/)
+    - [ ] [PEP 691 - JSON-based Simple API for Python Package Indexes](https://peps.python.org/pep-0691/)
 - Server configuration:
     - [x] `config.toml`  
     - [ ] CLI (Migrations, Start server, ...)
