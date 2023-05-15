@@ -16,23 +16,33 @@ use super::models::RequestData;
 use super::SimpleController;
 
 pub fn router(state: SimpleController) -> Router {
-    Router::new()        
+    Router::new()
         .route("/simple/", post(upload).get(list_packages))
         .route("/simple/:project/", get(list_dists))
         .route("/simple/:project/:distribution", get(download_package))
         .with_state(state)
 }
 
+#[tracing::instrument(
+        name = "Upload a package",
+        skip(state, auth, data),
+        fields(
+            project = %data.name,
+            project_version = %data.version
+        )
+    )]
 async fn upload(
     State(state): State<SimpleController>,
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
-    data: TypedMultipart<RequestData>,
+    TypedMultipart(data): TypedMultipart<RequestData>,
 ) {
-    println!("{:?}", auth);
+    let distribution: Distribution = data.into();
 
-    let distribution: Distribution = data.0.into();
-
-    let _query = state.store.upload_package(distribution).await;
+    if let Err(_) = state.store.upload_package(distribution).await {
+        tracing::error!("Failed to upload package");
+    } else {
+        tracing::info!("Package has been added to index");
+    }
 }
 
 async fn list_dists(

@@ -3,6 +3,7 @@ use crate::package;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
@@ -67,12 +68,6 @@ impl SimpleStore for Store {
         &self,
         distribution: package::Distribution,
     ) -> Result<(), PackageError> {
-        log::debug!(
-            "Uploading package {} - {}",
-            &distribution.core_metadata.name,
-            &distribution.core_metadata.version
-        );
-
         let core_metadata = distribution.core_metadata;
         let filename = distribution.file.filename;
 
@@ -100,7 +95,10 @@ impl SimpleStore for Store {
         match transaction {
             Ok(_) => Ok(()),
             Err(_) => {
-                self.store.delete(&file_path).await.expect("Unable to delete a file on aborted transaction.");
+                self.store
+                    .delete(&file_path)
+                    .await
+                    .expect("Unable to delete a file on aborted transaction.");
                 Err(PackageError)
             }
         }
@@ -145,10 +143,7 @@ impl SimpleStore for Store {
                 let content = file.bytes().await.expect("Unable to decode wheel content");
                 let filename = dist.to_owned();
 
-                Ok(package::File {
-                    filename,
-                    content,
-                })
+                Ok(package::File { filename, content })
             }
             _ => {
                 todo!()
