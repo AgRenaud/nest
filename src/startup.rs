@@ -67,8 +67,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), hyper::Error> {
-        println!("{}", greeting::LOGO);
-        println!("\nWelcome to Nest !\n");
+        greeting::greets(&self.address());
 
         let middleware = ServiceBuilder::new()
             .set_x_request_id(MakeRequestUuid)
