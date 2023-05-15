@@ -1,31 +1,27 @@
-use std::net::TcpListener;
+use std::net::{TcpListener, SocketAddr};
 use std::sync::Arc;
 
-use axum::{Router, middleware};
+use axum::Router;
 use axum::routing::get;
 
 use object_store::local::LocalFileSystem;
 use surrealdb::opt::auth::Root;
 use surrealdb::{engine::remote::ws::Ws, Surreal};
 
-use hyper::Request;
 use tower::ServiceBuilder;
-use tower_http::trace;
 use tower_http::{
     ServiceBuilderExt,
-    request_id::{MakeRequestId, RequestId, MakeRequestUuid},
-    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer}
+    request_id::MakeRequestUuid,
+    trace::TraceLayer
 };
-use tracing::Level;
-use uuid::Uuid;
 
 use crate::greeting;
 use crate::persistence::Store;
-use crate::request_id::{AddRequestIdLayer, MakeSpanWithRequestId, UseRequestId};
 use crate::routes::healthcheck::healthcheck;
 use crate::routes::home::home;
 use crate::routes::simple;
 use crate::settings;
+use crate::telemetry::{MakeSpan, OnResponse};
 
 pub struct Application {
     app: Router,
@@ -59,21 +55,10 @@ impl Application {
         let store = Arc::new(Store::new(db, store));
         let state = simple::SimpleController { store };
 
-        let middleware = ServiceBuilder::new()
-            .layer(AddRequestIdLayer)
-            .layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(MakeSpanWithRequestId::default().level(Level::INFO))
-                    .on_failure(()),
-            )
-            .set_x_request_id(UseRequestId)
-            .into_inner();
-
         let app = Router::new()
             .nest("/", simple::router(state))
             .route("/healthcheck", get(healthcheck))
-            .route("/", get(home))
-            .layer(middleware);
+            .route("/", get(home));
     
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr).unwrap();
@@ -85,8 +70,20 @@ impl Application {
         println!("{}", greeting::LOGO);
         println!("\nWelcome to Nest !\n");
 
+        let middleware = ServiceBuilder::new()
+            .set_x_request_id(MakeRequestUuid)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(MakeSpan)
+                    .on_response(OnResponse),
+            )
+            .propagate_x_request_id()
+            .into_inner();
+
         hyper::Server::from_tcp(self.listener)?
-            .serve(self.app.into_make_service())
+            .serve(self.app
+                .layer(middleware)
+                .into_make_service_with_connect_info::<SocketAddr>())
             .await
     }
 
