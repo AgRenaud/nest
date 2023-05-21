@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::persistence;
+use crate::{simple_api};
 
 #[derive(Clone)]
 pub struct SimpleController {
-    pub store: Arc<dyn persistence::SimpleStore>,
+    pub store: Arc<dyn simple_api::SimpleStore>,
 }

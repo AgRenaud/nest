@@ -1,3 +1,3 @@
 mod store;
 
-pub use store::{SimpleStore, Store};
+pub use store::Store;

@@ -1,53 +1,23 @@
 use crate::package;
+use crate::simple_api::{SimpleStore, ProjectName, PackageError, PkgDist};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
 
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 use surrealdb::{engine::remote::ws::Client, sql::Thing, Surreal};
 
-#[derive(Debug)]
-pub struct PackageError;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Record {
     id: Thing,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ProjectName {
-    pub name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PkgDist {
-    pub filename: String,
-}
-
 #[derive(Deserialize)]
 pub struct Dists {
     dists: Vec<PkgDist>,
-}
-
-#[async_trait]
-pub trait SimpleStore: Send + Sync + 'static {
-    async fn upload_package(&self, distribution: package::Distribution)
-        -> Result<(), PackageError>;
-    async fn get_projects(&self) -> Result<Vec<ProjectName>, PackageError>;
-    async fn get_dists(&self, project: &String) -> Result<Vec<PkgDist>, PackageError>;
-    async fn get_dist_file(
-        &self,
-        project: &String,
-        dist: &String,
-    ) -> Result<package::File, PackageError>;
-    async fn get_dist_metadata(
-        &self,
-        project: &String,
-        dist: &String,
-    ) -> Result<package::CoreMetadata, PackageError>;
 }
 
 #[derive(Clone)]
