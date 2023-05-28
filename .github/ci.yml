@@ -1,0 +1,35 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: surrealdb/surrealdb:latest
+        command: start --user root --pass root file:/data/database.db
+        ports:
+          - 8000:8000
+
+    steps:
+      - name: Set up rust
+        uses: actions/checkout@v2
+      - name: Install dev crates
+        run: |
+          cargo install cargo-audit
+      - name: Build
+        run: cargo build -v
+      - name: Test
+        run: cargo test -v
+      - name: Lint
+        run: cargo clippy -v -- -D warnings
+      - name: Audit
+        run: cargo audit 
