@@ -15,7 +15,7 @@ jobs:
     services:
       database:
         image: surrealdb/surrealdb:latest
-        command: start --user root --pass root file:/data/database.db
+        run: start --user root --pass root file:/data/database.db
         ports:
           - 8000:8000
 
