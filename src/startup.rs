@@ -1,19 +1,15 @@
-use std::net::{TcpListener, SocketAddr};
+use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
 
-use axum::Router;
 use axum::routing::get;
+use axum::Router;
 
 use object_store::local::LocalFileSystem;
 use surrealdb::opt::auth::Root;
 use surrealdb::{engine::remote::ws::Ws, Surreal};
 
 use tower::ServiceBuilder;
-use tower_http::{
-    ServiceBuilderExt,
-    request_id::MakeRequestUuid,
-    trace::TraceLayer
-};
+use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
 
 use crate::greeting;
 use crate::persistence::Store;
@@ -59,7 +55,7 @@ impl Application {
             .nest("/", simple::router(state))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
-    
+
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr).unwrap();
 
@@ -80,9 +76,11 @@ impl Application {
             .into_inner();
 
         hyper::Server::from_tcp(self.listener)?
-            .serve(self.app
-                .layer(middleware)
-                .into_make_service_with_connect_info::<SocketAddr>())
+            .serve(
+                self.app
+                    .layer(middleware)
+                    .into_make_service_with_connect_info::<SocketAddr>(),
+            )
             .await
     }
 

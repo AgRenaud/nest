@@ -1,4 +1,8 @@
-use nest::{settings, startup::Application, telemetry::{get_subscriber, init_subscriber}};
+use nest::{
+    settings,
+    startup::Application,
+    telemetry::{get_subscriber, init_subscriber},
+};
 
 #[tokio::main]
 async fn main() -> hyper::Result<()> {
@@ -7,10 +11,10 @@ async fn main() -> hyper::Result<()> {
 
     tracing::debug!("Read configuration");
     let configuration = settings::get_settings(None).expect("Failed to read configuration.");
-    
+
     tracing::debug!("Build Application");
     let application = Application::build(configuration).await;
-    
+
     tracing::debug!("Run Application");
     application.run().await.unwrap();
 
