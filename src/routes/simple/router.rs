@@ -1,11 +1,11 @@
 use crate::package::Distribution;
 
-use liquid;
+use maud::{html, Markup, DOCTYPE};
 
 use axum::{
     extract::{Path, State},
     headers::{authorization::Basic, Authorization},
-    response::{Html, IntoResponse},
+    response::IntoResponse,
     routing::{get, post},
     Router, TypedHeader,
 };
@@ -45,45 +45,39 @@ async fn upload(
     }
 }
 
-async fn list_dists(
-    Path(project): Path<String>,
-    State(state): State<SimpleController>,
-) -> Html<String> {
-    let html_template = include_str!("./templates/simple-package.html");
-
-    let template = liquid::ParserBuilder::with_stdlib()
-        .build()
-        .unwrap()
-        .parse(html_template)
-        .unwrap();
-
+async fn list_dists(Path(project): Path<String>, State(state): State<SimpleController>) -> Markup {
     let dists = state.store.get_dists(&project).await.unwrap();
     let dists: Vec<String> = dists.iter().map(|d| d.filename.to_owned()).collect();
 
-    let html = template
-        .render(&liquid::object!({"project": project, "dists": dists}))
-        .unwrap();
-
-    Html(html)
+    html! {
+        (DOCTYPE)
+        meta charset="utf-8";
+        meta name="pypi:repository-version" content="1.1";
+        title { "Links for " (&project) }
+        body {
+            h1 { "Links for " (&project) }
+            @for dist in &dists {
+                a href={"/simple/" (&project) "/" (&dist) } { (&dist) } br;
+            }
+        }
+    }
 }
 
-async fn list_packages(State(state): State<SimpleController>) -> Html<String> {
-    let html_template = include_str!("./templates/simple.html");
-
-    let template = liquid::ParserBuilder::with_stdlib()
-        .build()
-        .unwrap()
-        .parse(html_template)
-        .unwrap();
-
+async fn list_packages(State(state): State<SimpleController>) -> Markup {
     let projects = state.store.get_projects().await.unwrap();
     let projects: Vec<String> = projects.iter().map(|p| p.name.to_owned()).collect();
 
-    let html = template
-        .render(&liquid::object!({ "projects": projects }))
-        .unwrap();
-
-    Html(html)
+    html! {
+        (DOCTYPE)
+        meta charset="utf-8";
+        meta name="pypi:repository-version" content="1.1";
+        title { "Simple index" }
+        body {
+            @for project in &projects {
+                a href={"/simple/" (&project) "/"} { (&project) } br;
+            }
+        }
+    }
 }
 
 async fn download_package(
