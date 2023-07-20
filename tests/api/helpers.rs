@@ -16,7 +16,7 @@ pub async fn spawn_app() -> TestApp {
                 path: String::from("./simple-index"),
             },
             database: settings::DatabaseSettings {
-                address: String::from("127.0.0.1:8000"),
+                address: String::from("localhost:8000"),
                 user: String::from("root"),
                 password: String::from("root"),
             },
