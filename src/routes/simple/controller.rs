@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{simple_api};
+use crate::simple_api;
 
 #[derive(Clone)]
 pub struct SimpleController {

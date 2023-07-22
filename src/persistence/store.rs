@@ -1,5 +1,5 @@
 use crate::package;
-use crate::simple_api::{SimpleStore, ProjectName, PackageError, PkgDist};
+use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 use surrealdb::{engine::remote::ws::Client, sql::Thing, Surreal};
-
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Record {
