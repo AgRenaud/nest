@@ -1,12 +1,11 @@
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::routing::get;
 use axum::Router;
 
 use object_store::local::LocalFileSystem;
-use surrealdb::opt::auth::Root;
-use surrealdb::{engine::remote::ws::Ws, Surreal};
 
 use tower::ServiceBuilder;
 use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
@@ -15,14 +14,16 @@ use crate::greeting;
 use crate::persistence::Store;
 use crate::routes::healthcheck::healthcheck;
 use crate::routes::home::home;
-use crate::routes::simple;
+use crate::routes::simple::{self, SimpleController};
 use crate::settings;
 use crate::telemetry::{MakeSpan, OnResponse};
+use sqlx::postgres::PgPoolOptions;
 
 pub struct Application {
     app: Router,
     listener: TcpListener,
 }
+
 impl Application {
     pub async fn build(config: settings::Settings) -> Self {
         let storage =
@@ -30,29 +31,19 @@ impl Application {
                 .expect("Unable to set up local index.");
         let store = Arc::new(storage);
 
-        let db = Surreal::new::<Ws>(config.persistence.database.address.clone())
-            .await
-            .expect("Unable to reach db ! Please check your configuration.");
+        let db_pool = PgPoolOptions::new()
+            .acquire_timeout(Duration::from_secs(2))
+            .connect_lazy_with(config.persistence.database.with_db());
 
-        db.signin(Root {
-            username: config.persistence.database.user.as_str(),
-            password: config.persistence.database.password.as_str(),
-        })
-        .await
-        .expect("Unable to connect to db.");
+        let simple_store = Store::new(db_pool, store);
+        let simple_store = Arc::new(simple_store);
 
-        // TODO: Move use of namespace and repository to api user.
-        db.use_ns("global")
-            .use_db("repository")
-            .await
-            .expect("Unable to get namespace and database");
-
-        let db = Arc::new(db);
-        let store = Arc::new(Store::new(db, store));
-        let state = simple::SimpleController { store };
+        let simple_state = SimpleController {
+            store: simple_store,
+        };
 
         let app = Router::new()
-            .nest("/", simple::router(state))
+            .nest("/simple", simple::router(simple_state))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
 

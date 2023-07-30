@@ -32,3 +32,7 @@ pub async fn home() -> Markup {
         }
     )
 }
+
+pub async fn login() -> Markup {
+    html!()
+}

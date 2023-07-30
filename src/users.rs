@@ -1,10 +1,11 @@
-use serde::{Serialize, Deserialize};
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
     name: String,
     password: String,
-    email: String
+    email: String,
 }
 
 pub struct EmailAlreadyExists;
@@ -12,10 +13,15 @@ pub struct NameAlreadyExists;
 
 pub enum UserError {
     EmailAlreadyExists,
-    NameAlreadyExists
+    NameAlreadyExists,
 }
 
 #[async_trait]
 pub trait UserStore: Send + Sync + 'static {
-    async fn add_user(&self, name: String, password: String, email: String) -> Result<(), UserError>;
+    async fn create_user(
+        &self,
+        name: String,
+        password: String,
+        email: String,
+    ) -> Result<(), UserError>;
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::simple_api;
 
-#[derive(Clone)]
-pub struct SimpleController {
+
+pub struct AppState {
     pub store: Arc<dyn simple_api::SimpleStore>,
 }

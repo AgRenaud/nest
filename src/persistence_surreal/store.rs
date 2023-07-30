@@ -3,7 +3,6 @@ use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
 use serde::Deserialize;
-use sqlx::PgPool;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -15,12 +14,11 @@ pub struct Dists {
 
 #[derive(Clone)]
 pub struct Store {
-    db: PgPool,
     store: Arc<dyn ObjectStore>,
 }
 
 impl Store {
-    pub fn new(db: PgPool, store: Arc<dyn ObjectStore>) -> Store {
+    pub fn new(db: Arc<Surreal<Client>>, store: Arc<dyn ObjectStore>) -> Store {
         Store { db, store }
     }
 }
@@ -46,44 +44,51 @@ impl SimpleStore for Store {
             Err(_) => return Err(PackageError),
         }
 
-        // let upload_package_query = include_str!("./query/upload_package.srql");
+        let upload_package_query = include_str!("./query/upload_package.srql");
 
-        let transaction = todo!();
+        let transaction = self
+            .db
+            .query(upload_package_query)
+            .bind(("core_metadata", &core_metadata))
+            .bind(("filename", &filename))
+            .await;
 
-        // match transaction {
-        //     Ok(_) => Ok(()),
-        //     Err(_) => {
-        //         self.store
-        //             .delete(&file_path)
-        //             .await
-        //             .expect("Unable to delete a file on aborted transaction.");
-        //         Err(PackageError)
-        //     }
-        // }
+        match transaction {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                self.store
+                    .delete(&file_path)
+                    .await
+                    .expect("Unable to delete a file on aborted transaction.");
+                Err(PackageError)
+            }
+        }
     }
 
     async fn get_projects(&self) -> Result<Vec<ProjectName>, PackageError> {
-        // match self.db.select("projects").await {
-        //     Ok(p) => Ok(p),
-        //     Err(_e) => Err(PackageError),
-        // }
-
-        todo!();
+        match self.db.select("projects").await {
+            Ok(p) => Ok(p),
+            Err(_e) => Err(PackageError),
+        }
     }
 
     async fn get_dists(&self, project: &String) -> Result<Vec<PkgDist>, PackageError> {
-        // let get_dists_query = include_str!("./query/get_dists.srql");
+        let get_dists_query = include_str!("./query/get_dists.srql");
 
-        let result = todo!();
+        let result = self
+            .db
+            .query(get_dists_query)
+            .bind(("project_name", project))
+            .await;
 
-        // match result {
-        //     Ok(mut r) => {
-        //         let dists: Option<Dists> = r.take(1).unwrap();
-        //         let dists = dists.unwrap();
-        //         Ok(dists.dists)
-        //     }
-        //     Err(_) => Err(PackageError),
-        // }
+        match result {
+            Ok(mut r) => {
+                let dists: Option<Dists> = r.take(1).unwrap();
+                let dists = dists.unwrap();
+                Ok(dists.dists)
+            }
+            Err(_) => Err(PackageError),
+        }
     }
 
     async fn get_dist_file(

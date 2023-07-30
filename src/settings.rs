@@ -1,4 +1,9 @@
 use serde::Deserialize;
+use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 use toml::de::Error;
 
 #[derive(Deserialize)]
@@ -26,9 +31,41 @@ pub struct ObjectStorageSettings {
 
 #[derive(Deserialize)]
 pub struct DatabaseSettings {
-    pub address: String,
-    pub user: String,
+    pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    pub username: String,
     pub password: String,
+    pub name: String,
+    #[serde(default)]
+    pub require_ssl: bool,
+}
+
+impl DatabaseSettings {
+    pub fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
+
+        PgConnectOptions::new()
+            .host(&self.host)
+            .port(self.port)
+            .ssl_mode(ssl_mode)
+            .username(&self.username)
+            .password(&self.password)
+    }
+
+    pub fn with_db(&self) -> PgConnectOptions {
+        let options = self
+            .without_db()
+            .database(&self.name)
+            .log_statements(log::LevelFilter::Trace)
+            .clone();
+
+        options
+    }
 }
 
 pub fn get_settings(path: Option<String>) -> Result<Settings, Error> {
