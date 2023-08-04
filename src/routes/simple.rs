@@ -158,7 +158,7 @@ async fn upload(
 ) {
     let distribution: Distribution = data.into();
 
-    if let Err(_) = state.store.upload_package(distribution).await {
+    if (state.store.upload_package(distribution).await).is_err() {
         tracing::error!("Failed to upload package");
     } else {
         tracing::info!("Package has been added to index");
@@ -214,7 +214,7 @@ async fn download_package(
             let body = content;
 
             let content_type = String::from("octet/stream; charset=utf-8");
-            let content_disposition = format!("attachment; filename=\"{}\"", &(*filename));
+            let content_disposition = format!("attachment; filename=\"{}\"", filename);
 
             let headers = axum::response::AppendHeaders([
                 (header::CONTENT_TYPE, content_type),

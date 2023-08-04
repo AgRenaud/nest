@@ -34,6 +34,17 @@ impl SimpleStore for Store {
         let core_metadata = distribution.core_metadata;
         let filename = distribution.file.filename;
 
+        let q = sqlx::query!(
+            r#"
+            INSERT INTO projects (name, normalized_name) 
+            VALUES ($1, $2)
+            "#,
+            &core_metadata.name,
+            &core_metadata.name
+        )
+        .execute(&self.db)
+        .await;
+
         let file_path = Path::from_iter([
             "simple-index",
             (core_metadata.name.as_str()),
