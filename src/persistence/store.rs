@@ -37,7 +37,7 @@ impl SimpleStore for Store {
         let q = sqlx::query!(
             r#"
             INSERT INTO projects (name, normalized_name) 
-            VALUES ($1, $2)
+            VALUES ($1, normalize_pep426_name($2))
             "#,
             &core_metadata.name,
             &core_metadata.name
