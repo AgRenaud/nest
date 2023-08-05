@@ -2,6 +2,7 @@ use crate::package;
 use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
+use bytes::Bytes;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -59,6 +60,25 @@ impl Store {
             return Err(PackageError);
         }
     }
+
+    async fn save_file_distribution(&self, project_name: &String, dist_name: &String, dist_content: Bytes) -> Result<(), PackageError>{
+        let file_path = Path::from_iter([
+            "simple-index",
+            project_name.as_str(),
+            dist_name.as_str(),
+        ]);
+
+        let query = self
+            .store
+            .put(&file_path, dist_content)
+            .await;
+
+        if query.is_err() {
+            return Err(PackageError)
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -76,18 +96,15 @@ impl SimpleStore for Store {
             .expect("Unable to check wether project exists or not.");
 
         if !project_exists {
-            log::info!("Create project {}", &core_metadata.name);
+            tracing::info!("Create project {}", &core_metadata.name);
             self.create_project(&core_metadata.name)
                 .await
                 .expect("Unable to create project");
         }
 
-        let file_path = Path::from_iter([
-            "simple-index",
-            (core_metadata.name.as_str()),
-            filename.as_str(),
-        ]);
-        let r = self.store.put(&file_path, distribution.file.content).await;
+        let r = self
+            .save_file_distribution(&core_metadata.name, &filename, distribution.file.content)
+            .await;
 
         match r {
             Ok(_) => Ok(()),
