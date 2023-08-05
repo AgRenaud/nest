@@ -35,7 +35,3 @@ pub trait SimpleStore: Send + Sync + 'static {
         dist: &String,
     ) -> Result<package::CoreMetadata, PackageError>;
 }
-
-pub fn name_normalized(name: String) -> String {
-    todo!()
-}

@@ -2,16 +2,11 @@ use crate::package;
 use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
-use serde::Deserialize;
 use sqlx::PgPool;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
-#[derive(Deserialize)]
-pub struct Dists {
-    dists: Vec<PkgDist>,
-}
 
 #[derive(Clone)]
 pub struct Store {
@@ -22,6 +17,47 @@ pub struct Store {
 impl Store {
     pub fn new(db: PgPool, store: Arc<dyn ObjectStore>) -> Store {
         Store { db, store }
+    }
+
+    async fn create_project(&self, project_name: &String) -> Result<(), PackageError> {
+        let query = sqlx::query!(
+            r#"
+            INSERT INTO projects (name, normalized_name) 
+            VALUES ($1, normalize_pep426_name($2))
+            "#,
+            project_name,
+            project_name,
+        )
+        .execute(&self.db)
+        .await;
+
+        if query.is_err() {
+            return Err(PackageError);
+        }
+
+        Ok(())
+    }
+
+    async fn project_exists(&self, project_name: &String) -> Result<bool, PackageError> {
+        let query = sqlx::query!(
+            r#"
+            SELECT name, normalized_name
+            FROM projects
+            WHERE normalized_name = normalize_pep426_name($1)
+            "#,
+            project_name,
+        )
+        .fetch_optional(&self.db)
+        .await;
+
+        if let Ok(q) = query {
+            match q {
+                Some(_) => Ok(true),
+                _ => Ok(false),
+            }
+        } else {
+            return Err(PackageError);
+        }
     }
 }
 
@@ -34,16 +70,17 @@ impl SimpleStore for Store {
         let core_metadata = distribution.core_metadata;
         let filename = distribution.file.filename;
 
-        let q = sqlx::query!(
-            r#"
-            INSERT INTO projects (name, normalized_name) 
-            VALUES ($1, normalize_pep426_name($2))
-            "#,
-            &core_metadata.name,
-            &core_metadata.name
-        )
-        .execute(&self.db)
-        .await;
+        let project_exists = self
+            .project_exists(&core_metadata.name)
+            .await
+            .expect("Unable to check wether project exists or not.");
+
+        if !project_exists {
+            log::info!("Create project {}", &core_metadata.name);
+            self.create_project(&core_metadata.name)
+                .await
+                .expect("Unable to create project");
+        }
 
         let file_path = Path::from_iter([
             "simple-index",
@@ -53,13 +90,12 @@ impl SimpleStore for Store {
         let r = self.store.put(&file_path, distribution.file.content).await;
 
         match r {
-            Ok(_) => {}
+            Ok(_) => Ok(()),
             Err(_) => return Err(PackageError),
         }
 
         // let upload_package_query = include_str!("./query/upload_package.srql");
 
-        let transaction = todo!();
 
         // match transaction {
         //     Ok(_) => Ok(()),

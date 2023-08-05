@@ -58,11 +58,9 @@ impl DatabaseSettings {
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
-        self
-            .without_db()
+        self.without_db()
             .database(&self.name)
             .log_statements(log::LevelFilter::Trace)
-            .clone()
     }
 }
 
