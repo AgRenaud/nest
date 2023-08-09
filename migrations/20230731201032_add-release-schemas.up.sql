@@ -1,7 +1,11 @@
 -- Add up migration script here
+CREATE EXTENSION IF NOT EXISTS citext;
+
+CREATE TYPE packagetype AS ENUM ('bdist_dmg','bdist_dumb','bdist_egg','bdist_msi','bdist_rpm','bdist_wheel','bdist_wininst','sdist');
+CREATE TYPE dependency_kind AS ENUM ('requires','provides','obsoletes','requires_dist','provides_dist','obsoletes_dist','requires_external');
 
 CREATE TABLE releases (
-    id serial PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     version TEXT NOT NULL,
     canonical_version TEXT NOT NULL,
     is_prerelease BOOL NOT NULL DEFAULT FALSE,
@@ -16,27 +20,16 @@ CREATE TABLE releases (
     platform TEXT,
     download_url TEXT,
     requires_python TEXT,
-    project_id INTEGER,
 
-    requires TEXT,
-    provides TEXT,
-    obsoletes TEXT,
-    requires_dist TEXT,
-    provides_dist TEXT,
-    obsoletes_dist TEXT,
-    requires_external TEXT,
+    project_id INTEGER,
 
     CONSTRAINT fk_project
       FOREIGN KEY(project_id) 
 	    REFERENCES projects(id)
 );
 
-CREATE EXTENSION IF NOT EXISTS citext;
-
-CREATE TYPE packagetype AS ENUM ('bdist_dmg','bdist_dumb','bdist_egg','bdist_msi','bdist_rpm','bdist_wheel','bdist_wininst','sdist');
-
 CREATE TABLE release_files (
-    id serial PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     python_version TEXT,
     requires_python TEXT,
     packagetype packagetype,
@@ -52,16 +45,15 @@ CREATE TABLE release_files (
     metadata_file_sha256_digest CITEXT NOT NULL,
     metadata_file_blake2_256_digest CITEXT NOT NULL,
 
-
     release_id INT,
 
-    CONSTRAINT fk_release
+    CONSTRAINT fk_release_files
       FOREIGN KEY(release_id) 
 	    REFERENCES releases(id)
 );
 
 CREATE TABLE release_descriptions (
-    id serial PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     content_type TEXT,
     raw TEXT NOT NULL,
     html TEXT NOT NULL,
@@ -69,7 +61,18 @@ CREATE TABLE release_descriptions (
 
     release_id INT,
 
-    CONSTRAINT fk_release
+    CONSTRAINT fk_release_descriptions
+      FOREIGN KEY(release_id) 
+	    REFERENCES releases(id)
+);
+
+CREATE TABLE release_dependencies (
+  id SERIAL PRIMARY KEY,
+  kind dependency_kind,
+  specifier TEXT,
+  release_id INT,
+
+  CONSTRAINT fk_release_dependencies
       FOREIGN KEY(release_id) 
 	    REFERENCES releases(id)
 );

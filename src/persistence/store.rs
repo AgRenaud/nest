@@ -3,11 +3,48 @@ use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
 use bytes::Bytes;
+use regex::Regex;
 use sqlx::PgPool;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
+
+
+fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
+    let mut parts = Vec::new();
+
+    let re = Regex::new(r"^(\d+):?((\d+)(\.(\d+))*)([.-].+)?$").unwrap();
+    if let Some(captures) = re.captures(version) {
+        if let Some(epoch) = captures.get(1) {
+            let epoch_value = epoch.as_str();
+            if !epoch_value.is_empty() {
+                parts.push(format!("{}!", epoch_value));
+            }
+        }
+
+        if let Some(release) = captures.get(2) {
+            let release_value = release.as_str();
+            if strip_trailing_zero {
+                let re_trailing_zero = Regex::new(r"(\.0)+$").unwrap();
+                let normalized_release = re_trailing_zero.replace_all(release_value, "");
+                parts.push(normalized_release.to_string());
+            } else {
+                parts.push(release_value.to_string());
+            }
+        }
+
+        if let Some(pre_release) = captures.get(6) {
+            let pre_release_value = pre_release.as_str();
+            parts.push(pre_release_value.to_string());
+        }
+    } else {
+        // Invalid version format, return the original input
+        return version.to_string();
+    }
+
+    parts.join("")
+}
 
 #[derive(Clone)]
 pub struct Store {
@@ -24,9 +61,8 @@ impl Store {
         let query = sqlx::query!(
             r#"
             INSERT INTO projects (name, normalized_name) 
-            VALUES ($1, normalize_pep426_name($2))
+            VALUES ($1, normalize_pep426_name($1))
             "#,
-            project_name,
             project_name,
         )
         .execute(&self.db)
@@ -61,20 +97,19 @@ impl Store {
         }
     }
 
-    async fn save_file_distribution(&self, project_name: &String, dist_name: &String, dist_content: Bytes) -> Result<(), PackageError>{
-        let file_path = Path::from_iter([
-            "simple-index",
-            project_name.as_str(),
-            dist_name.as_str(),
-        ]);
+    async fn save_file_distribution(
+        &self,
+        project_name: &String,
+        dist_name: &String,
+        dist_content: Bytes,
+    ) -> Result<(), PackageError> {
+        let file_path =
+            Path::from_iter(["simple-index", project_name.as_str(), dist_name.as_str()]);
 
-        let query = self
-            .store
-            .put(&file_path, dist_content)
-            .await;
+        let query = self.store.put(&file_path, dist_content).await;
 
         if query.is_err() {
-            return Err(PackageError)
+            return Err(PackageError);
         }
 
         Ok(())
@@ -102,17 +137,47 @@ impl SimpleStore for Store {
                 .expect("Unable to create project");
         }
 
-        let r = self
+        let project = sqlx::query!(
+            r#"
+            SELECT id FROM projects WHERE name = $1
+            "#,
+            &core_metadata.name
+        )
+        .fetch_one(&self.db)
+        .await
+        .expect("Unable to get record.");
+
+        let save_file_query = self
             .save_file_distribution(&core_metadata.name, &filename, distribution.file.content)
             .await;
 
-        match r {
-            Ok(_) => Ok(()),
-            Err(_) => return Err(PackageError),
-        }
+        let save_metadata_query = sqlx::query!(
+            r#"
+            INSERT INTO releases(
+                version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id) 
+            VALUES
+                ($1, $2, pep440_is_prerelease($1), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            "#,
+            &core_metadata.version,
+            canonicalize_version(&core_metadata.version, false),
+            &core_metadata.author.as_deref().unwrap_or(""),
+            &core_metadata.author_email.as_deref().unwrap_or(""),
+            &core_metadata.maintainer.as_deref().unwrap_or(""), 
+            &core_metadata.maintainer_email.as_deref().unwrap_or(""),
+            &core_metadata.home_page.as_deref().unwrap_or(""),
+            &core_metadata.license.as_deref().unwrap_or(""),
+            &core_metadata.summary.as_deref().unwrap_or(""),
+            "",//&core_metadata.keywords,
+            "",//&core_metadata.platform,
+            &core_metadata.download_url.as_deref().unwrap_or(""),
+            &core_metadata.requires_python.as_deref().unwrap_or(""),
+            &project.id)
+            .execute(&self.db)
+            .await;
+
+        todo!()
 
         // let upload_package_query = include_str!("./query/upload_package.srql");
-
 
         // match transaction {
         //     Ok(_) => Ok(()),
