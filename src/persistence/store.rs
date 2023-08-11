@@ -10,7 +10,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 
-
 fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
     let mut parts = Vec::new();
 
@@ -57,7 +56,7 @@ impl Store {
         Store { db, store }
     }
 
-    async fn create_project(&self, project_name: &String) -> Result<(), PackageError> {
+    async fn create_project(&self, project_name: &str) -> Result<(), PackageError> {
         let query = sqlx::query!(
             r#"
             INSERT INTO projects (name, normalized_name) 
@@ -75,7 +74,7 @@ impl Store {
         Ok(())
     }
 
-    async fn project_exists(&self, project_name: &String) -> Result<bool, PackageError> {
+    async fn project_exists(&self, project_name: &str) -> Result<bool, PackageError> {
         let query = sqlx::query!(
             r#"
             SELECT name, normalized_name
@@ -99,12 +98,11 @@ impl Store {
 
     async fn save_file_distribution(
         &self,
-        project_name: &String,
-        dist_name: &String,
+        project_name: &str,
+        dist_name: &str,
         dist_content: Bytes,
     ) -> Result<(), PackageError> {
-        let file_path =
-            Path::from_iter(["simple-index", project_name.as_str(), dist_name.as_str()]);
+        let file_path = Path::from_iter(["simple-index", project_name, dist_name]);
 
         let query = self.store.put(&file_path, dist_content).await;
 
@@ -167,13 +165,13 @@ impl SimpleStore for Store {
             &core_metadata.home_page.as_deref().unwrap_or(""),
             &core_metadata.license.as_deref().unwrap_or(""),
             &core_metadata.summary.as_deref().unwrap_or(""),
-            "",//&core_metadata.keywords,
-            "",//&core_metadata.platform,
+            &core_metadata.keywords.join(","),
+            &core_metadata.platforms.join(","),
             &core_metadata.download_url.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),
             &project.id)
-            .execute(&self.db)
-            .await;
+                .execute(&self.db)
+                .await;
 
         todo!()
 
@@ -200,7 +198,7 @@ impl SimpleStore for Store {
         todo!();
     }
 
-    async fn get_dists(&self, project: &String) -> Result<Vec<PkgDist>, PackageError> {
+    async fn get_dists(&self, project: &str) -> Result<Vec<PkgDist>, PackageError> {
         // let get_dists_query = include_str!("./query/get_dists.srql");
 
         let result = todo!();
@@ -217,10 +215,10 @@ impl SimpleStore for Store {
 
     async fn get_dist_file(
         &self,
-        project: &String,
-        dist: &String,
+        project: &str,
+        dist: &str,
     ) -> Result<package::File, PackageError> {
-        let file_path = Path::from_iter(["simple-index", project.as_str(), dist.as_str()]);
+        let file_path = Path::from_iter(["simple-index", project, dist]);
         let file = self.store.get(&file_path).await;
 
         match file {
@@ -238,8 +236,8 @@ impl SimpleStore for Store {
 
     async fn get_dist_metadata(
         &self,
-        _project: &String,
-        _dist: &String,
+        _project: &str,
+        _dist: &str,
     ) -> Result<package::CoreMetadata, PackageError> {
         todo!()
     }
