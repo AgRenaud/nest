@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO projects (name, normalized_name)\n            VALUES ($1, normalize_pep426_name($1))\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d402fed7990ed8a695068f4eb4ed994c9b2c6efa2cc8bfc55b390bd3c22e0c03"
+}

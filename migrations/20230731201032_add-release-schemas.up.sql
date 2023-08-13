@@ -21,10 +21,10 @@ CREATE TABLE releases (
     download_url TEXT,
     requires_python TEXT,
 
-    project_id INTEGER,
+    project_id INT,
 
     CONSTRAINT fk_project
-      FOREIGN KEY(project_id) 
+      FOREIGN KEY(project_id)
 	    REFERENCES projects(id)
 );
 
@@ -33,13 +33,12 @@ CREATE TABLE release_files (
     python_version TEXT,
     requires_python TEXT,
     packagetype packagetype,
-    comment_text TEXT,
     filename TEXT UNIQUE,
     path TEXT UNIQUE NOT NULL,
     size INT,
     md5_digest TEXT UNIQUE NOT NULL,
-    sha256_digest CITEXT UNIQUE NOT NULL,
-    blake2_256_digest CITEXT UNIQUE NOT NULL,
+    sha256_digest CITEXT UNIQUE NOT NULL CHECK (sha256_digest ~* '^[A-F0-9]{64}$'),
+    blake2_256_digest CITEXT UNIQUE NOT NULL CHECK (blake2_256_digest ~* '^[A-F0-9]{64}$'),
     upload_time DATE,
     uploaded_via TEXT,
     metadata_file_sha256_digest CITEXT NOT NULL,
@@ -48,7 +47,7 @@ CREATE TABLE release_files (
     release_id INT,
 
     CONSTRAINT fk_release_files
-      FOREIGN KEY(release_id) 
+      FOREIGN KEY(release_id)
 	    REFERENCES releases(id)
 );
 
@@ -62,7 +61,7 @@ CREATE TABLE release_descriptions (
     release_id INT,
 
     CONSTRAINT fk_release_descriptions
-      FOREIGN KEY(release_id) 
+      FOREIGN KEY(release_id)
 	    REFERENCES releases(id)
 );
 
@@ -73,6 +72,6 @@ CREATE TABLE release_dependencies (
   release_id INT,
 
   CONSTRAINT fk_release_dependencies
-      FOREIGN KEY(release_id) 
+      FOREIGN KEY(release_id)
 	    REFERENCES releases(id)
 );

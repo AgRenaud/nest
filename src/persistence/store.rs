@@ -10,6 +10,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 
+
 fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
     let mut parts = Vec::new();
 
@@ -59,7 +60,7 @@ impl Store {
     async fn create_project(&self, project_name: &str) -> Result<(), PackageError> {
         let query = sqlx::query!(
             r#"
-            INSERT INTO projects (name, normalized_name) 
+            INSERT INTO projects (name, normalized_name)
             VALUES ($1, normalize_pep426_name($1))
             "#,
             project_name,
@@ -100,11 +101,11 @@ impl Store {
         &self,
         project_name: &str,
         dist_name: &str,
-        dist_content: Bytes,
+        dist_content: &Bytes,
     ) -> Result<(), PackageError> {
         let file_path = Path::from_iter(["simple-index", project_name, dist_name]);
 
-        let query = self.store.put(&file_path, dist_content).await;
+        let query = self.store.put(&file_path, dist_content.to_owned()).await;
 
         if query.is_err() {
             return Err(PackageError);
@@ -121,6 +122,8 @@ impl SimpleStore for Store {
         distribution: package::Distribution,
     ) -> Result<(), PackageError> {
         let core_metadata = distribution.core_metadata;
+        let hashes = distribution.hashes;
+
         let filename = distribution.file.filename;
 
         let project_exists = self
@@ -146,21 +149,29 @@ impl SimpleStore for Store {
         .expect("Unable to get record.");
 
         let save_file_query = self
-            .save_file_distribution(&core_metadata.name, &filename, distribution.file.content)
+            .save_file_distribution(&core_metadata.name, &filename, &distribution.file.content)
             .await;
 
-        let save_metadata_query = sqlx::query!(
+        let size = distribution
+            .file
+            .content
+            .len() as i32;
+
+        let file_path = Path::from_iter(["simple-index", &core_metadata.name, &filename]);
+
+        let release = sqlx::query!(
             r#"
             INSERT INTO releases(
-                version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id) 
+            version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id)
             VALUES
                 ($1, $2, pep440_is_prerelease($1), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING id
             "#,
             &core_metadata.version,
             canonicalize_version(&core_metadata.version, false),
             &core_metadata.author.as_deref().unwrap_or(""),
             &core_metadata.author_email.as_deref().unwrap_or(""),
-            &core_metadata.maintainer.as_deref().unwrap_or(""), 
+            &core_metadata.maintainer.as_deref().unwrap_or(""),
             &core_metadata.maintainer_email.as_deref().unwrap_or(""),
             &core_metadata.home_page.as_deref().unwrap_or(""),
             &core_metadata.license.as_deref().unwrap_or(""),
@@ -170,8 +181,37 @@ impl SimpleStore for Store {
             &core_metadata.download_url.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),
             &project.id)
-                .execute(&self.db)
-                .await;
+                .fetch_one(&self.db)
+                .await
+                .unwrap();
+
+        let release_id = release.id;
+
+        let save_release_file = sqlx::query!(r#"
+            INSERT INTO release_files(
+                python_version, requires_python, packagetype, filename, path, size, md5_digest, sha256_digest, blake2_256_digest, uploaded_via, metadata_file_sha256_digest, metadata_file_blake2_256_digest, release_id
+            )
+            VALUES
+                ($1, $2, $3, $4, $5, $6, $7, lower($8), lower($9), $10, lower($11), lower($12), $13)
+            "#,
+            &distribution.python_version.as_deref().unwrap_or(""),
+            &core_metadata.requires_python.as_deref().unwrap_or(""),
+            package::PackageType::BdistWheel.as_str() as &str,
+            &filename,
+            &file_path.to_string(),
+            &size,
+            &hashes.md5_digest,
+            &hashes.sha256_digest,
+            &hashes.blake2_256_digest,
+            "",
+            "",
+            "",
+            &release_id,
+            )
+            .execute(&self.db)
+            .await;
+
+        let save_release_file = save_release_file.expect("Blabla");
 
         todo!()
 

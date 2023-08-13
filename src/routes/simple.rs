@@ -15,7 +15,7 @@ use axum::body::Bytes;
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use serde::Serialize;
 
-use crate::package::{CoreMetadata, Distribution, File};
+use crate::package::{CoreMetadata, DistHashes, Distribution, File};
 use crate::simple_api;
 
 #[derive(Clone)]
@@ -64,10 +64,10 @@ pub struct RequestData {
     pub download_url: Option<String>,
     pub platforms: Vec<String>,
     pub supported_platform: Option<String>,
-    pub comment: Option<String>,
-    pub md5_digest: Option<String>,
-    pub sha256_digest: Option<String>,
-    pub blake2_256_digest: Option<String>,
+    // pub comment: Option<String>,
+    pub md5_digest: String,
+    pub sha256_digest: String,
+    pub blake2_256_digest: String,
     pub description_content_type: Option<String>,
 
     // PEP 314
@@ -128,9 +128,19 @@ impl From<RequestData> for Distribution {
 
         let file = File { filename, content };
 
+        let hashes = DistHashes {
+            md5_digest: val.md5_digest,
+            sha256_digest: val.sha256_digest,
+            blake2_256_digest: val.blake2_256_digest,
+        };
+
+        let python_version = val.pyversion;
+
         Distribution {
             core_metadata,
             file,
+            hashes,
+            python_version
         }
     }
 }

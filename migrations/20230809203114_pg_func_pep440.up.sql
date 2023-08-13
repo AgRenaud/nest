@@ -1,6 +1,6 @@
 -- Add up migration script here
 
-CREATE FUNCTION pep440_is_prerelease(text) 
+CREATE OR REPLACE FUNCTION pep440_is_prerelease(text) 
     RETURNS boolean as 
     $$
         SELECT lower($1) ~* '(a|b|rc|dev|alpha|beta|c|pre|preview)'

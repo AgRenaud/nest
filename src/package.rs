@@ -314,14 +314,48 @@ pub struct CoreMetadata {
     pub obsoletes_dists: Vec<String>,
 }
 
+pub enum PackageType {
+    BdistDmg,
+    BdistDumb,
+    BdistEgg,
+    BdistMsi,
+    BdistRpm,
+    BdistWheel,
+    BdistWininst,
+    Sdist,
+}
+
+impl PackageType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PackageType::BdistDmg => "bdist_dmg",
+            PackageType::BdistDumb => "bdist_dumb",
+            PackageType::BdistEgg => "bdist_egg",
+            PackageType::BdistMsi => "bdist_msi",
+            PackageType::BdistRpm => "bdist_rpm",
+            PackageType::BdistWheel => "bdist_wheel",
+            PackageType::BdistWininst => "bdist_wininst",
+            PackageType::Sdist => "sdist",
+        }
+    }
+}
+
 pub struct File {
     pub filename: String,
     pub content: Bytes,
 }
 
+pub struct DistHashes {
+    pub md5_digest: String,
+    pub sha256_digest: String,
+    pub blake2_256_digest: String,
+}
+
 pub struct Distribution {
     pub core_metadata: CoreMetadata,
     pub file: File,
+    pub hashes: DistHashes,
+    pub python_version: Option<String>
 }
 
 fn pep_503_normalized_name(_name: &String) -> Result<(), ValidationError> {
