@@ -39,10 +39,10 @@ CREATE TABLE release_files (
     md5_digest TEXT UNIQUE NOT NULL,
     sha256_digest CITEXT UNIQUE NOT NULL CHECK (sha256_digest ~* '^[A-F0-9]{64}$'),
     blake2_256_digest CITEXT UNIQUE NOT NULL CHECK (blake2_256_digest ~* '^[A-F0-9]{64}$'),
-    upload_time DATE,
-    uploaded_via TEXT,
-    metadata_file_sha256_digest CITEXT NOT NULL,
-    metadata_file_blake2_256_digest CITEXT NOT NULL,
+    upload_time DATE DEFAULT CURRENT_DATE,
+    -- TODO: Read whl content and extract metadata to compute the two following fields
+    -- metadata_file_sha256_digest CITEXT NOT NULL,
+    -- metadata_file_blake2_256_digest CITEXT NOT NULL,
 
     release_id INT,
 

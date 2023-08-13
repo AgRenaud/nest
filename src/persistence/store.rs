@@ -189,10 +189,10 @@ impl SimpleStore for Store {
 
         let save_release_file = sqlx::query!(r#"
             INSERT INTO release_files(
-                python_version, requires_python, packagetype, filename, path, size, md5_digest, sha256_digest, blake2_256_digest, uploaded_via, metadata_file_sha256_digest, metadata_file_blake2_256_digest, release_id
+                python_version, requires_python, packagetype, filename, path, size, md5_digest, sha256_digest, blake2_256_digest, release_id
             )
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, lower($8), lower($9), $10, lower($11), lower($12), $13)
+                ($1, $2, $3, $4, $5, $6, $7, lower($8), lower($9), $10)
             "#,
             &distribution.python_version.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),
@@ -203,15 +203,10 @@ impl SimpleStore for Store {
             &hashes.md5_digest,
             &hashes.sha256_digest,
             &hashes.blake2_256_digest,
-            "",
-            "",
-            "",
             &release_id,
             )
             .execute(&self.db)
             .await;
-
-        let save_release_file = save_release_file.expect("Blabla");
 
         todo!()
 
