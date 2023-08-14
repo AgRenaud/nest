@@ -40,6 +40,7 @@ maud = { version = "0.25.0", features = ["axum"] }
 jsonwebtoken = "8.3.0"
 sqlx = { version = "0.7.1", features = ["sqlx-postgres", "postgres", "runtime-tokio"] }
 regex = "1.9.3"
+pulldown-cmark = "0.9.3"
 
 [dev-dependencies]
 anyhow = "1"

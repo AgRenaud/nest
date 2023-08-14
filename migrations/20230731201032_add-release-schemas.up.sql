@@ -75,3 +75,4 @@ CREATE TABLE release_dependencies (
       FOREIGN KEY(release_id)
 	    REFERENCES releases(id)
 );
+

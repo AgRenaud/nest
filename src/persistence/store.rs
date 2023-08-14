@@ -11,6 +11,21 @@ use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 
 
+#[derive(sqlx::Type)]
+#[sqlx(type_name="packagetype")]
+#[sqlx(rename_all="snake_case")]
+enum PackageType {
+    BdistDmg,
+    BdistDumb,
+    BdistEgg,
+    BdistMsi,
+    BdistRpm,
+    BdistWheel,
+    BdistWininst,
+    Sdist
+}
+
+
 fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
     let mut parts = Vec::new();
 
@@ -152,10 +167,7 @@ impl SimpleStore for Store {
             .save_file_distribution(&core_metadata.name, &filename, &distribution.file.content)
             .await;
 
-        let size = distribution
-            .file
-            .content
-            .len() as i32;
+        let size = distribution.file.content.len() as i32;
 
         let file_path = Path::from_iter(["simple-index", &core_metadata.name, &filename]);
 
@@ -196,7 +208,7 @@ impl SimpleStore for Store {
             "#,
             &distribution.python_version.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),
-            package::PackageType::BdistWheel.as_str() as &str,
+            PackageType::BdistWheel as _,
             &filename,
             &file_path.to_string(),
             &size,
@@ -206,8 +218,26 @@ impl SimpleStore for Store {
             &release_id,
             )
             .execute(&self.db)
-            .await;
+            .await
+            .expect("Unable to add release file");
 
+        if let Some(desc) = &core_metadata.description {
+            tracing::info!("Receive description");
+            let description_type = &core_metadata.description_content_type;
+            tracing::info!("Description type: {:?}", description_type);
+
+            //let save_release_desc = sqlx::query(
+            //    r#"
+            //INSERT INTO release_descriptions (
+
+            //)
+            //VALUES
+            //    ()
+            //"#,
+            //)
+            //.execute(&self.db)
+            //.await;
+        }
         todo!()
 
         // let upload_package_query = include_str!("./query/upload_package.srql");
