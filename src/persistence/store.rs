@@ -226,18 +226,22 @@ impl SimpleStore for Store {
             let description_type = &core_metadata.description_content_type;
             tracing::info!("Description type: {:?}", description_type);
 
-            //let save_release_desc = sqlx::query(
-            //    r#"
-            //INSERT INTO release_descriptions (
-
-            //)
-            //VALUES
-            //    ()
-            //"#,
-            //)
-            //.execute(&self.db)
-            //.await;
+            let save_release_desc = sqlx::query!(r#"
+                INSERT INTO release_descriptions (
+                    content_type, raw, html, release_id
+                )
+                VALUES
+                    ($1, $2, $3, $4)
+                "#,
+                description_type.as_deref().unwrap_or("text/rst"),
+                desc,
+                "",
+                &release_id
+                )
+                .execute(&self.db)
+                .await;
         }
+
         todo!()
 
         // let upload_package_query = include_str!("./query/upload_package.srql");

@@ -56,7 +56,6 @@ CREATE TABLE release_descriptions (
     content_type TEXT,
     raw TEXT NOT NULL,
     html TEXT NOT NULL,
-    rendered_by TEXT NOT NULL,
 
     release_id INT,
 
