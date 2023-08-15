@@ -33,7 +33,6 @@ pub struct ProjectDists {
     pub dists: Vec<String>,
 }
 
-#[allow(dead_code)]
 #[derive(TryFromMultipart)]
 pub struct RequestData {
     #[form_data(field_name = ":action")]
@@ -149,6 +148,7 @@ pub fn router(state: SimpleController) -> Router {
     Router::new()
         .route("/", post(upload).get(list_packages))
         .route("/:project/", get(list_dists))
+        .layer(axum::extract::DefaultBodyLimit::disable())
         .route("/:project/:distribution", get(download_package))
         .with_state(state)
 }
