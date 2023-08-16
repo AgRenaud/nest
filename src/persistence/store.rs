@@ -25,6 +25,36 @@ enum PackageType {
     Sdist
 }
 
+#[derive(sqlx::Type)]
+#[sqlx(type_name="dependency_kind")]
+#[sqlx(rename_all="snake_case")]
+enum DependencyKind {
+    Requires,
+    Provides,
+    Obsoletes,
+    RequiresDist,
+    ProvidesDist,
+    ObsoletesDist,
+    RequiresExternal,
+}
+
+impl sqlx::postgres::PgHasArrayType for DependencyKind {
+    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("_dependency_kind")
+    }
+}
+
+
+struct Dependency{
+    pub kind: DependencyKind,
+    pub specifier: String
+}
+
+impl package::CoreMetadata{
+    fn get_dependencies(self) -> Vec<Dependency> {
+        todo!()
+    }
+}
 
 fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
     let mut parts = Vec::new();
@@ -42,6 +72,7 @@ fn canonicalize_version(version: &str, strip_trailing_zero: bool) -> String {
             let release_value = release.as_str();
             if strip_trailing_zero {
                 let re_trailing_zero = Regex::new(r"(\.0)+$").unwrap();
+
                 let normalized_release = re_trailing_zero.replace_all(release_value, "");
                 parts.push(normalized_release.to_string());
             } else {
@@ -242,6 +273,32 @@ impl SimpleStore for Store {
                 .await;
         }
 
+        let deps = core_metadata.get_dependencies();
+        let deps_number = deps.len() as i32;
+        let deps_kind: Vec<DependencyKind> = deps
+            .iter()
+            .map(|d| &d.kind)
+            .collect();
+
+        let deps_specifier: Vec<String> = deps
+            .iter()
+            .map(|d| &d.specifier)
+            .collect();
+
+        let deps_release = vec![release_id, deps_number].as_slice();
+        sqlx::query!(r#"
+            INSERT INTO release_dependencies (
+                kind, specifier, release_id)
+            SELECT * FROM UNNEST($1::"dependency_kind"[], $2::text[], $3::int[])
+            "#,
+            &deps_kind as _,
+            &deps_specifier,
+            deps_release)
+            .execute(&self.db)
+            .await;
+
+
+
         todo!()
 
         // let upload_package_query = include_str!("./query/upload_package.srql");
@@ -259,12 +316,19 @@ impl SimpleStore for Store {
     }
 
     async fn get_projects(&self) -> Result<Vec<ProjectName>, PackageError> {
-        // match self.db.select("projects").await {
-        //     Ok(p) => Ok(p),
-        //     Err(_e) => Err(PackageError),
-        // }
 
-        todo!();
+        let projects = sqlx::query_as!(ProjectName, r#"
+            SELECT name FROM projects
+            ORDER BY name ASC
+            "#)
+            .fetch_all(&self.db)
+            .await;
+
+
+        match projects {
+             Ok(p) => Ok(p),
+             Err(_e) => Err(PackageError),
+        }
     }
 
     async fn get_dists(&self, project: &str) -> Result<Vec<PkgDist>, PackageError> {
