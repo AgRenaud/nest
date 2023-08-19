@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH SelectedProject AS (\n                SELECT id\n                FROM projects\n                WHERE normalized_name = normalize_pep426_name($1)\n            )\n            SELECT rf.filename as filename, rf.path as path\n            FROM SelectedProject sr\n            JOIN releases r ON sr.id = r.project_id\n            JOIN release_files rf ON r.id = rf.release_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e50c7d63dc713b53f269d60b52b1a948b966f0bcf9ebb79ea5f2532cd3460069"
+}

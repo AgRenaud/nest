@@ -1,4 +1,4 @@
-use crate::package;
+use crate::package::{self, CoreMetadata};
 use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
@@ -10,10 +10,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use object_store::{path::Path, ObjectStore};
 
-
 #[derive(sqlx::Type)]
-#[sqlx(type_name="packagetype")]
-#[sqlx(rename_all="snake_case")]
+#[sqlx(type_name = "packagetype")]
+#[sqlx(rename_all = "snake_case")]
 enum PackageType {
     BdistDmg,
     BdistDumb,
@@ -22,12 +21,12 @@ enum PackageType {
     BdistRpm,
     BdistWheel,
     BdistWininst,
-    Sdist
+    Sdist,
 }
 
 #[derive(sqlx::Type)]
-#[sqlx(type_name="dependency_kind")]
-#[sqlx(rename_all="snake_case")]
+#[sqlx(type_name = "dependency_kind")]
+#[sqlx(rename_all = "snake_case")]
 enum DependencyKind {
     Requires,
     Provides,
@@ -44,15 +43,45 @@ impl sqlx::postgres::PgHasArrayType for DependencyKind {
     }
 }
 
-
-struct Dependency{
+struct Dependency {
     pub kind: DependencyKind,
-    pub specifier: String
+    pub specifier: String,
 }
 
-impl package::CoreMetadata{
+impl package::CoreMetadata {
     fn get_dependencies(self) -> Vec<Dependency> {
-        todo!()
+        // TODO: Check if Requires and Provides are part of PEP specifications.
+
+        let mut dependencies = Vec::new();
+
+        for value in &self.requires_dists {
+            dependencies.push(Dependency {
+                kind: DependencyKind::RequiresDist,
+                specifier: value.clone(),
+            })
+        }
+        for value in &self.provides_dists {
+            dependencies.push(Dependency {
+                kind: DependencyKind::ProvidesDist,
+                specifier: value.clone(),
+            })
+        }
+
+        for value in &self.obsoletes_dists {
+            dependencies.push(Dependency {
+                kind: DependencyKind::ObsoletesDist,
+                specifier: value.clone(),
+            })
+        }
+
+        for value in &self.requires_externals {
+            dependencies.push(Dependency {
+                kind: DependencyKind::RequiresExternal,
+                specifier: value.clone(),
+            })
+        }
+
+        dependencies
     }
 }
 
@@ -194,14 +223,19 @@ impl SimpleStore for Store {
         .await
         .expect("Unable to get record.");
 
-        let save_file_query = self
+        let save_file = self
             .save_file_distribution(&core_metadata.name, &filename, &distribution.file.content)
             .await;
+
+        if save_file.is_err() {
+            return Err(PackageError {});
+        }
 
         let size = distribution.file.content.len() as i32;
 
         let file_path = Path::from_iter(["simple-index", &core_metadata.name, &filename]);
 
+        let mut tx = self.db.begin().await.expect("Unable to start transaction");
         let release = sqlx::query!(
             r#"
             INSERT INTO releases(
@@ -224,13 +258,13 @@ impl SimpleStore for Store {
             &core_metadata.download_url.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),
             &project.id)
-                .fetch_one(&self.db)
+                .fetch_one(&mut *tx)
                 .await
                 .unwrap();
 
         let release_id = release.id;
 
-        let save_release_file = sqlx::query!(r#"
+        let _ = sqlx::query!(r#"
             INSERT INTO release_files(
                 python_version, requires_python, packagetype, filename, path, size, md5_digest, sha256_digest, blake2_256_digest, release_id
             )
@@ -248,7 +282,7 @@ impl SimpleStore for Store {
             &hashes.blake2_256_digest,
             &release_id,
             )
-            .execute(&self.db)
+            .execute(&mut *tx)
             .await
             .expect("Unable to add release file");
 
@@ -257,7 +291,8 @@ impl SimpleStore for Store {
             let description_type = &core_metadata.description_content_type;
             tracing::info!("Description type: {:?}", description_type);
 
-            let save_release_desc = sqlx::query!(r#"
+            let _ = sqlx::query!(
+                r#"
                 INSERT INTO release_descriptions (
                     content_type, raw, html, release_id
                 )
@@ -268,82 +303,93 @@ impl SimpleStore for Store {
                 desc,
                 "",
                 &release_id
-                )
-                .execute(&self.db)
-                .await;
+            )
+            .execute(&mut *tx)
+            .await;
         }
 
         let deps = core_metadata.get_dependencies();
         let deps_number = deps.len() as i32;
-        let deps_kind: Vec<DependencyKind> = deps
-            .iter()
-            .map(|d| &d.kind)
-            .collect();
 
-        let deps_specifier: Vec<String> = deps
-            .iter()
-            .map(|d| &d.specifier)
-            .collect();
+        if deps_number > 0 {
+            let (deps_kind, deps_specifier): (Vec<_>, Vec<_>) = deps
+                .into_iter()
+                .map(|Dependency { kind, specifier }| (kind, specifier.to_owned()))
+                .unzip();
 
-        let deps_release = vec![release_id, deps_number].as_slice();
-        sqlx::query!(r#"
+            let deps_release = vec![release_id, deps_number];
+
+            let _ = sqlx::query!(
+                r#"
             INSERT INTO release_dependencies (
                 kind, specifier, release_id)
             SELECT * FROM UNNEST($1::"dependency_kind"[], $2::text[], $3::int[])
             "#,
-            &deps_kind as _,
-            &deps_specifier,
-            deps_release)
-            .execute(&self.db)
+                &deps_kind as _,
+                &deps_specifier,
+                &deps_release
+            )
+            .execute(&mut *tx)
             .await;
+        }
 
+        let tx = tx.commit().await;
 
+        if tx.is_err() {
+            tracing::info!("Transaction failed, about to delete the file.");
 
-        todo!()
+            // TODO: Should we handle this error better ???
+            self.store
+                .delete(&file_path)
+                .await
+                .expect("Unable to delete file on aborted transactions.");
+            return Err(PackageError {});
+        }
 
-        // let upload_package_query = include_str!("./query/upload_package.srql");
-
-        // match transaction {
-        //     Ok(_) => Ok(()),
-        //     Err(_) => {
-        //         self.store
-        //             .delete(&file_path)
-        //             .await
-        //             .expect("Unable to delete a file on aborted transaction.");
-        //         Err(PackageError)
-        //     }
-        // }
+        Ok(())
     }
 
     async fn get_projects(&self) -> Result<Vec<ProjectName>, PackageError> {
-
-        let projects = sqlx::query_as!(ProjectName, r#"
+        let projects = sqlx::query_as!(
+            ProjectName,
+            r#"
             SELECT name FROM projects
             ORDER BY name ASC
-            "#)
-            .fetch_all(&self.db)
-            .await;
-
+            "#
+        )
+        .fetch_all(&self.db)
+        .await;
 
         match projects {
-             Ok(p) => Ok(p),
-             Err(_e) => Err(PackageError),
+            Ok(p) => Ok(p),
+            Err(_e) => Err(PackageError),
         }
     }
 
     async fn get_dists(&self, project: &str) -> Result<Vec<PkgDist>, PackageError> {
-        // let get_dists_query = include_str!("./query/get_dists.srql");
+        let pkg_dists = sqlx::query_as!(
+            PkgDist,
+            r#"
+            WITH SelectedProject AS (
+                SELECT id
+                FROM projects
+                WHERE normalized_name = normalize_pep426_name($1)
+            )
+            SELECT rf.filename as filename, rf.path as path
+            FROM SelectedProject sr
+            JOIN releases r ON sr.id = r.project_id
+            JOIN release_files rf ON r.id = rf.release_id;
+            "#,
+            project
+        )
+        .fetch_all(&self.db)
+        .await;
 
-        let result = todo!();
-
-        // match result {
-        //     Ok(mut r) => {
-        //         let dists: Option<Dists> = r.take(1).unwrap();
-        //         let dists = dists.unwrap();
-        //         Ok(dists.dists)
-        //     }
-        //     Err(_) => Err(PackageError),
-        // }
+        if let Ok(pkg_dists) = pkg_dists {
+            Ok(pkg_dists)
+        } else {
+            Err(PackageError {})
+        }
     }
 
     async fn get_dist_file(

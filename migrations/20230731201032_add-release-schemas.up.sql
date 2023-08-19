@@ -33,7 +33,7 @@ CREATE TABLE release_files (
     python_version TEXT,
     requires_python TEXT,
     packagetype packagetype,
-    filename TEXT UNIQUE,
+    filename TEXT UNIQUE NOT NULL,
     path TEXT UNIQUE NOT NULL,
     size INT,
     md5_digest TEXT UNIQUE NOT NULL,

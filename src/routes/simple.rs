@@ -139,7 +139,7 @@ impl From<RequestData> for Distribution {
             core_metadata,
             file,
             hashes,
-            python_version
+            python_version,
         }
     }
 }

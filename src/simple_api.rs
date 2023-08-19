@@ -16,6 +16,7 @@ pub struct ProjectName {
 #[derive(Serialize, Deserialize)]
 pub struct PkgDist {
     pub filename: String,
+    pub path: String,
 }
 
 #[async_trait]

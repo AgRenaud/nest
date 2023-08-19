@@ -355,7 +355,7 @@ pub struct Distribution {
     pub core_metadata: CoreMetadata,
     pub file: File,
     pub hashes: DistHashes,
-    pub python_version: Option<String>
+    pub python_version: Option<String>,
 }
 
 fn pep_503_normalized_name(_name: &String) -> Result<(), ValidationError> {
@@ -367,7 +367,7 @@ fn pep_440_version_format(version: &String) -> Result<(), ValidationError> {
     let re = regex::Regex::new(pep440).unwrap();
 
     if !re.is_match(version) {
-        return Err(ValidationError::new("Version format incorrect."))
+        return Err(ValidationError::new("Version format incorrect."));
     }
 
     Ok(())
@@ -377,8 +377,8 @@ fn pep_301_valid_classifier(names: &Vec<String>) -> Result<(), ValidationError> 
     let pep301 = r"^[\w\d\.\-\ \/]+(::[\w\d\.\-\ \/]+)*$";
     let re = regex::Regex::new(pep301).unwrap();
 
-    if !names.iter().all(|clf| re.is_match(clf)){
-        return Err(ValidationError::new("Classifiers are not valid."))
+    if !names.iter().all(|clf| re.is_match(clf)) {
+        return Err(ValidationError::new("Classifiers are not valid."));
     }
 
     Ok(())
