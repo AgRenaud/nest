@@ -314,24 +314,72 @@ pub struct CoreMetadata {
     pub obsoletes_dists: Vec<String>,
 }
 
+pub enum PackageType {
+    BdistDmg,
+    BdistDumb,
+    BdistEgg,
+    BdistMsi,
+    BdistRpm,
+    BdistWheel,
+    BdistWininst,
+    Sdist,
+}
+
+impl PackageType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PackageType::BdistDmg => "bdist_dmg",
+            PackageType::BdistDumb => "bdist_dumb",
+            PackageType::BdistEgg => "bdist_egg",
+            PackageType::BdistMsi => "bdist_msi",
+            PackageType::BdistRpm => "bdist_rpm",
+            PackageType::BdistWheel => "bdist_wheel",
+            PackageType::BdistWininst => "bdist_wininst",
+            PackageType::Sdist => "sdist",
+        }
+    }
+}
+
 pub struct File {
     pub filename: String,
     pub content: Bytes,
 }
 
+pub struct DistHashes {
+    pub md5_digest: String,
+    pub sha256_digest: String,
+    pub blake2_256_digest: String,
+}
+
 pub struct Distribution {
     pub core_metadata: CoreMetadata,
     pub file: File,
+    pub hashes: DistHashes,
+    pub python_version: Option<String>,
 }
 
 fn pep_503_normalized_name(_name: &String) -> Result<(), ValidationError> {
-    todo!()
+    Ok(())
 }
 
-fn pep_440_version_format(_version: &String) -> Result<(), ValidationError> {
-    todo!()
+fn pep_440_version_format(version: &String) -> Result<(), ValidationError> {
+    let pep440 = r"";
+    let re = regex::Regex::new(pep440).unwrap();
+
+    if !re.is_match(version) {
+        return Err(ValidationError::new("Version format incorrect."));
+    }
+
+    Ok(())
 }
 
-fn pep_301_valid_classifier(_name: &Vec<String>) -> Result<(), ValidationError> {
-    todo!()
+fn pep_301_valid_classifier(names: &Vec<String>) -> Result<(), ValidationError> {
+    let pep301 = r"^[\w\d\.\-\ \/]+(::[\w\d\.\-\ \/]+)*$";
+    let re = regex::Regex::new(pep301).unwrap();
+
+    if !names.iter().all(|clf| re.is_match(clf)) {
+        return Err(ValidationError::new("Classifiers are not valid."));
+    }
+
+    Ok(())
 }

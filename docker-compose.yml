@@ -1,11 +1,16 @@
 version: '3'
 
+volumes:
+  db:
+
 services:
-  surrealdb:
-    image: surrealdb/surrealdb:latest
+  database:
+    image: docker.io/postgres:latest 
     restart: always
-    command: start --user root --pass root file:/data/database.db
+    environment:
+      - POSTGRES_USER=nest-user
+      - POSTGRES_PASSWORD=nest-secret
     ports:
-      - 8000:8000
-    volumes:
-      - ./data:/data
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data

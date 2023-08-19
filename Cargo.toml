@@ -19,8 +19,8 @@ futures = "0.3.28"
 log = "0.4.17"
 object_store = "0.5.5"
 serde = { version = "1.0.155", features = ["derive"] }
+serde-aux = "4.2.0"
 serde_json = "1.0.95"
-surrealdb = "1.0.0-beta.9"
 tokio = { version = "1.26.0", features = ["full"] }
 tower = "0.4.13"
 time = ">=0.2.23"
@@ -28,7 +28,7 @@ hyper = "0.14.26"
 toml = "0.7.3"
 anyhow = "1"
 validator = { version = "0.16.0", features = ["derive"] }
-tower-http = { version = "0.4.0", features = ["normalize-path", "redirect", "trace", "uuid", "request-id", "util"] }
+tower-http = { version = "0.4.0", features = ["normalize-path", "redirect", "trace", "uuid", "request-id", "util", "add-extension"] }
 tokio-util = { version = "0.7.8", features = ["io"] }
 tokio-stream = { version = "0.1.14", features = ["tokio-util", "io-util"] }
 tracing = "0.1.37"
@@ -37,6 +37,10 @@ tracing-subscriber = { version = "0.3.17", features = ["registry", "env-filter"]
 tracing-log = "0.1.3"
 uuid = { version = "1.3.2", features = ["v4"] }
 maud = { version = "0.25.0", features = ["axum"] }
+jsonwebtoken = "8.3.0"
+sqlx = { version = "0.7.1", features = ["sqlx-postgres", "postgres", "runtime-tokio"] }
+regex = "1.9.3"
+pulldown-cmark = "0.9.3"
 
 [dev-dependencies]
 anyhow = "1"

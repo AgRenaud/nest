@@ -7,6 +7,8 @@ port = 8080
 path = './simple-index'
 
 [persistence.database]
-address = '127.0.0.1:8000'
-user = 'root'
-password = 'root'
+host = '127.0.0.1'
+port = 5432
+username = 'nest-user'
+password = 'nest-secret'
+name = 'postgres'

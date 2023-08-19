@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO release_dependencies (\n                kind, specifier, release_id)\n            SELECT * FROM UNNEST($1::\"dependency_kind\"[], $2::text[], $3::int[])\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "_dependency_kind",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "dependency_kind",
+                  "kind": {
+                    "Enum": [
+                      "requires",
+                      "provides",
+                      "obsoletes",
+                      "requires_dist",
+                      "provides_dist",
+                      "obsoletes_dist",
+                      "requires_external"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "TextArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "587208b744f02322b0062fa0aaee80cdfb35f0673495e6f1a86b2a2f0152508a"
+}
