@@ -14,7 +14,8 @@ use crate::greeting;
 use crate::persistence::Store;
 use crate::routes::healthcheck::healthcheck;
 use crate::routes::home::home;
-use crate::routes::simple::{self, SimpleController};
+use crate::routes::simple::{self, SimpleState};
+use crate::routes::manage;
 use crate::settings;
 use crate::telemetry::{MakeSpan, OnResponse};
 use sqlx::postgres::PgPoolOptions;
@@ -35,15 +36,16 @@ impl Application {
             .acquire_timeout(Duration::from_secs(2))
             .connect_lazy_with(config.persistence.database.with_db());
 
-        let simple_store = Store::new(db_pool, store);
+        let simple_store = Store::new(db_pool.clone(), store);
         let simple_store = Arc::new(simple_store);
 
-        let simple_state = SimpleController {
+        let simple_state = SimpleState {
             store: simple_store,
         };
 
         let app = Router::new()
             .nest("/simple", simple::router(simple_state))
+            .nest("/manage", manage::router(db_pool.clone()))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
 

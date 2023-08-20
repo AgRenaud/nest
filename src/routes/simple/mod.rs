@@ -1,4 +1,4 @@
-use crate::package::Distribution;
+use std::sync::Arc;
 
 use maud::{html, Markup, DOCTYPE};
 
@@ -9,22 +9,31 @@ use axum::{
     routing::{get, post},
     Router, TypedHeader,
 };
-use axum_typed_multipart::TypedMultipart;
 use hyper::{header, StatusCode};
 
-use super::models::RequestData;
-use super::SimpleController;
+use axum_typed_multipart::TypedMultipart;
 
-pub fn router(state: SimpleController) -> Router {
+mod models;
+use crate::package::Distribution;
+use crate::simple_api;
+use models::RequestData;
+
+#[derive(Clone)]
+pub struct SimpleState {
+    pub store: Arc<dyn simple_api::SimpleStore>,
+}
+
+pub fn router(state: SimpleState) -> Router {
     Router::new()
-        .route("/simple/", post(upload).get(list_packages))
-        .route("/simple/:project/", get(list_dists))
-        .route("/simple/:project/:distribution", get(download_package))
+        .route("/", post(upload).get(list_packages))
+        .route("/:project/", get(list_dists))
+        .layer(axum::extract::DefaultBodyLimit::disable())
+        .route("/:project/:distribution", get(download_package))
         .with_state(state)
 }
 
 #[tracing::instrument(
-        name = "Upload a package",
+        name = "Simple::Upload a package",
         skip(state, auth, data),
         fields(
             project = %data.name,
@@ -32,20 +41,27 @@ pub fn router(state: SimpleController) -> Router {
         )
     )]
 async fn upload(
-    State(state): State<SimpleController>,
+    State(state): State<SimpleState>,
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     TypedMultipart(data): TypedMultipart<RequestData>,
 ) {
     let distribution: Distribution = data.into();
 
-    if let Err(_) = state.store.upload_package(distribution).await {
+    if (state.store.upload_package(distribution).await).is_err() {
         tracing::error!("Failed to upload package");
     } else {
         tracing::info!("Package has been added to index");
     }
 }
 
-async fn list_dists(Path(project): Path<String>, State(state): State<SimpleController>) -> Markup {
+#[tracing::instrument(
+        name = "Simple::Get distributions list",
+        skip(state, project),
+        fields(
+            project = %project
+        )
+    )]
+async fn list_dists(Path(project): Path<String>, State(state): State<SimpleState>) -> Markup {
     let dists = state.store.get_dists(&project).await.unwrap();
     let dists: Vec<String> = dists.iter().map(|d| d.filename.to_owned()).collect();
 
@@ -63,7 +79,8 @@ async fn list_dists(Path(project): Path<String>, State(state): State<SimpleContr
     }
 }
 
-async fn list_packages(State(state): State<SimpleController>) -> Markup {
+#[tracing::instrument(name = "Simple::List package", skip(state))]
+async fn list_packages(State(state): State<SimpleState>) -> Markup {
     let projects = state.store.get_projects().await.unwrap();
     let projects: Vec<String> = projects.iter().map(|p| p.name.to_owned()).collect();
 
@@ -80,8 +97,16 @@ async fn list_packages(State(state): State<SimpleController>) -> Markup {
     }
 }
 
+#[tracing::instrument(
+        name = "Simple::Get distributions list",
+        skip(state, project, distribution),
+        fields(
+            project = %project,
+            distribution = %distribution
+        )
+    )]
 async fn download_package(
-    State(state): State<SimpleController>,
+    State(state): State<SimpleState>,
     Path((project, distribution)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let file = state.store.get_dist_file(&project, &distribution).await;
@@ -94,7 +119,7 @@ async fn download_package(
             let body = content;
 
             let content_type = String::from("octet/stream; charset=utf-8");
-            let content_disposition = format!("attachment; filename=\"{}\"", &(*filename));
+            let content_disposition = format!("attachment; filename=\"{}\"", filename);
 
             let headers = axum::response::AppendHeaders([
                 (header::CONTENT_TYPE, content_type),
