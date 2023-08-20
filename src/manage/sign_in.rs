@@ -3,7 +3,7 @@ use serde::Deserialize;
 use axum::{extract::Extension, Form};
 
 use sqlx::PgPool;
-
+use crate::components::header::header;
 
 pub async fn sign_in() -> Markup {
      html!(
@@ -15,6 +15,7 @@ pub async fn sign_in() -> Markup {
             title { "Nest" }
         }
         body class="m0 p0 font-sans" {
+            (header())
             h1 class="w-full font-extrabold font-size-8 color-black" { "Sign In"}
             div class="ma w-100 " {
                 form hx-post="/login" class="position-absolute shadow-2xl border-rd-1.2 p-10" {

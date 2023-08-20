@@ -11,11 +11,10 @@ use tower::ServiceBuilder;
 use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
 
 use crate::greeting;
-use crate::persistence::Store;
-use crate::routes::healthcheck::healthcheck;
-use crate::routes::home::home;
-use crate::routes::simple::{self, SimpleState};
-use crate::routes::manage;
+use crate::healthcheck::healthcheck;
+use crate::home::home;
+use crate::simple::{self, SimpleState, store::Store};
+use crate::manage;
 use crate::settings;
 use crate::telemetry::{MakeSpan, OnResponse};
 use sqlx::postgres::PgPoolOptions;

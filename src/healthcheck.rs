@@ -7,7 +7,7 @@ pub async fn healthcheck() -> StatusCode {
 #[cfg(test)]
 mod tests {
     // Just for example purpose this tests is useless and will be remove later
-    use crate::routes::healthcheck::healthcheck;
+    use crate::healthcheck::healthcheck;
 
     #[tokio::test]
     async fn healthcheck_succeeds() {

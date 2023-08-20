@@ -2,7 +2,7 @@ use axum::body::Bytes;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
 use serde::Serialize;
 
-use crate::package::{CoreMetadata, DistHashes, Distribution, File};
+use super::package::{CoreMetadata, DistHashes, Distribution, File};
 
 #[derive(Serialize)]
 pub struct SimpleIndex {

@@ -1,5 +1,7 @@
 use maud::{html, Markup, DOCTYPE};
 
+use crate::components::header::header;
+
 pub async fn home() -> Markup {
     html!(
         (DOCTYPE)
@@ -9,10 +11,8 @@ pub async fn home() -> Markup {
             script src="https://cdn.jsdelivr.net/npm/@unocss/runtime" {};
             title { "Nest" }
         }
-        body {
-            a href="/manage/sign_in" { "sign in" }
-            br;
-            a href="/manage/sign_up" { "sign up" }
+        body class="m0 p0 font-sans" {
+            (header())
         }
     )
 }

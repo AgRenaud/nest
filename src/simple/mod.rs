@@ -13,9 +13,12 @@ use hyper::{header, StatusCode};
 
 use axum_typed_multipart::TypedMultipart;
 
-mod models;
-use crate::package::Distribution;
-use crate::simple_api;
+pub mod models;
+pub mod simple_api;
+pub mod package;
+pub mod store;
+
+use package::Distribution;
 use models::RequestData;
 
 #[derive(Clone)]
