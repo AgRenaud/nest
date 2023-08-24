@@ -13,9 +13,9 @@ use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderE
 use crate::greeting;
 use crate::healthcheck::healthcheck;
 use crate::home::home;
-use crate::simple::{self, SimpleState, store::Store};
 use crate::manage;
 use crate::settings;
+use crate::simple::{self, store::Store, SimpleState};
 use crate::telemetry::{MakeSpan, OnResponse};
 use sqlx::postgres::PgPoolOptions;
 

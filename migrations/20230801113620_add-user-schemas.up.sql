@@ -1,11 +1,12 @@
 -- Add up migration script here
-
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE user_roles AS ENUM ('admin','contributor');
 
 
 CREATE TABLE users (
-    username CITEXT NOT NULL UNIQUE,
-    password VARCHAR(128) NOT NULL,
+    id uuid PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
     role user_roles NOT NULL DEFAULT 'contributor',
 
     CONSTRAINT users_len_username CHECK (length(username) <= 50),

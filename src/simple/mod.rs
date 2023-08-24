@@ -14,12 +14,12 @@ use hyper::{header, StatusCode};
 use axum_typed_multipart::TypedMultipart;
 
 pub mod models;
-pub mod simple_api;
 pub mod package;
+pub mod simple_api;
 pub mod store;
 
-use package::Distribution;
 use models::RequestData;
+use package::Distribution;
 
 #[derive(Clone)]
 pub struct SimpleState {

@@ -1,6 +1,5 @@
 use maud::{html, Markup};
 
-
 pub fn header() -> Markup {
     html! (
         header class="font-sans font-bold bg-black flex justify-between items-center p30px" {

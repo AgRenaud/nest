@@ -1,6 +1,6 @@
 use maud::{html, Markup, DOCTYPE};
 
-use crate::components::header::header;
+use crate::components::header;
 
 pub async fn home() -> Markup {
     html!(
@@ -16,4 +16,3 @@ pub async fn home() -> Markup {
         }
     )
 }
-

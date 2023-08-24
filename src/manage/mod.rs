@@ -7,8 +7,8 @@ use sqlx::PgPool;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
 
-mod sign_in;
-mod sign_up;
+pub mod sign_in;
+pub mod sign_up;
 
 pub fn router(db_pool: PgPool) -> Router {
     let middleware = ServiceBuilder::new()

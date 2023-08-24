@@ -1,12 +1,9 @@
 use maud::{html, Markup, DOCTYPE};
-use serde::Deserialize;
-use axum::{extract::Extension, Form};
 
-use sqlx::PgPool;
-use crate::components::header::header;
+use crate::components::header;
 
 pub async fn sign_in() -> Markup {
-     html!(
+    html!(
         (DOCTYPE)
         head {
             meta charset="utf-8";
@@ -38,4 +35,3 @@ pub async fn sign_in() -> Markup {
         }
     )
 }
-

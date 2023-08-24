@@ -2,9 +2,8 @@ use axum::{extract::Extension, Form};
 use maud::{html, Markup, DOCTYPE};
 use serde::Deserialize;
 
+use crate::components::header;
 use sqlx::PgPool;
-use crate::components::header::header;
-
 
 pub async fn sign_up() -> Markup {
     html!(
@@ -57,7 +56,7 @@ pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<Si
 
     let user_created = sqlx::query!(
         r#"
-            INSERT INTO users (username, password)
+            INSERT INTO users (username, password_hash)
             VALUES ($1::TEXT::CITEXT, $2)
         "#,
         &form.username,
