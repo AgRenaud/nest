@@ -1,9 +1,40 @@
 use axum::{extract::Extension, Form};
 use maud::{html, Markup, DOCTYPE};
+use secrecy::ExposeSecret;
 use serde::Deserialize;
 
+use crate::authentication;
 use crate::components::header;
-use sqlx::{postgres::PgDatabaseError, PgPool};
+
+use sqlx::PgPool;
+
+fn sign_up_form(error_message: Option<&str>) -> Markup {
+    html! {
+        form hx-post="/manage/create_user" hx-swap="outerHTML" class="position-absolute shadow-2xl border-rd-1.2 p-10" {
+            div {
+                label for="userame" class="font-bold font-size-5" { "Username" }
+                input type="text" placeholder="Enter Username" name="username" required class="border-rd-1.2 m-4 p-2";
+            }
+            div {
+                label for="password" class="font-bold font-size-5" { "Password" }
+                input type="password" placeholder="Enter Password" name="password" required class="border-rd-1.2 m-4 p-2";
+            }
+            div {
+                label for="confirm_password" class="font-bold font-size-5" { "Confirm Password" }
+                input type="password" placeholder="Validate Password" name="confirm_password" required class="border-rd-1.2 m-4 p-2";
+            }
+
+            @if let Some(error_message) = error_message {
+                p class="color-red" { (error_message) }
+            }
+
+            div {
+                button type="submit" class="float-left w32 h14 bg-transparent border-rd-1.2 border-2" { "Confirm" }
+                a href="/manage/sign_in" class="float-right" { "Already have an account ? Sign in" }
+            }
+        }
+    }
+}
 
 pub async fn sign_up() -> Markup {
     html!(
@@ -17,25 +48,8 @@ pub async fn sign_up() -> Markup {
         body class="m0 p0 font-sans" {
             (header())
             h1 class="w-full font-extrabold font-size-8 color-black" { "Sign In"}
-            div class="ma w-100 " {
-                form hx-post="/manage/create_user" hx-swap="outerHTML" class="position-absolute shadow-2xl border-rd-1.2 p-10" {
-                    div {
-                        label for="userame" class="font-bold font-size-5" { "Username" }
-                        input type="text" placeholder="Enter Username" name="username" required class="border-rd-1.2 m-4 p-2";
-                    }
-                    div {
-                        label for="password" class="font-bold font-size-5" { "Password" }
-                        input type="password" placeholder="Enter Password" name="password" required class="border-rd-1.2 m-4 p-2";
-                    }
-                    div {
-                        label for="confirm_password" class="font-bold font-size-5" { "Confirm Password" }
-                        input type="password" placeholder="Validate Password" name="confirm_password" required class="border-rd-1.2 m-4 p-2";
-                    }
-                    div {
-                        button type="submit" class="float-left w32 h14 bg-transparent border-rd-1.2 border-2" { "Confirm" }
-                        a href="/manage/sign_in" class="float-right" { "Already have an account ? Sign in" }
-                    }
-                }
+            div class="ma w-100" {
+                (sign_up_form(None))
             }
         }
     )
@@ -51,8 +65,13 @@ pub struct SignUp {
 #[tracing::instrument(name = "Manage::Create user", skip(pool, form))]
 pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<SignUp>) -> Markup {
     if form.password != form.confirm_password {
-        todo!()
+        let error_message = "Password are not the same. Please check your password.";
+        return sign_up_form(Some(error_message));
     }
+
+    let password = secrecy::Secret::new(form.password);
+    let password_hash =
+        authentication::compute_password_hash(password).expect("Unable to create a proper hash.");
 
     let user_created = sqlx::query!(
         r#"
@@ -60,7 +79,7 @@ pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<Si
         VALUES ($1::TEXT::CITEXT, $2)
         "#,
         &form.username,
-        &form.password,
+        password_hash.expose_secret(),
     )
     .execute(&pool)
     .await;
@@ -79,20 +98,17 @@ pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<Si
                 .as_ref()
                 .map_or(sqlx::error::ErrorKind::Other, |err| err.kind());
 
-            let message = match &error_kind {
-                sqlx::error::ErrorKind::UniqueViolation => html! {
-                    p { "User " i { (&form.username) } " already exists." br; }
-                },
-                _ => html! {
-                    p { "Unable to sign up. Please contact your administrator." } br;
-                p { "Error message" br; i { @if let Some(err) = err { (err.message())} } }
-                },
-            };
-
-            html! {
-                div class="ma w-100 position-absolute shadow-2xl border-rd-1.2 p-10" {
-                    (message)
+            match &error_kind {
+                sqlx::error::ErrorKind::UniqueViolation => {
+                    let error_message = format!("User {} already exists.", &form.username);
+                    sign_up_form(Some(&error_message))
                 }
+                _ => html! {
+                    div class="ma w-100 position-absolute shadow-2xl border-rd-1.2 p-10" {
+                        p { "Unable to sign up. Please contact your administrator." } br;
+                        p { "Error message" br; i { @if let Some(err) = err { (err.message())} } }
+                    }
+                },
             }
         }
     }
