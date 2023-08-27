@@ -168,7 +168,7 @@ impl Store {
                 _ => Ok(false),
             }
         } else {
-            return Err(PackageError);
+            Err(PackageError);
         }
     }
 

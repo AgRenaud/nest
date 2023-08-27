@@ -8,28 +8,24 @@ use sqlx::PgPool;
 
 use crate::telemetry::spawn_blocking_with_tracing;
 
-
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,
     UnexpectedError,
-    UnknownUsername
+    UnknownUsername,
 }
 
-
 impl Error for AuthError {}
-
 
 impl fmt::Display for AuthError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AuthError::InvalidCredentials => write!(f, "Invalid credentials."),
             AuthError::UnexpectedError => write!(f, "An unexpected error occurred."),
-            AuthError::UnknownUsername => write!(f, "Unknown username.")
+            AuthError::UnknownUsername => write!(f, "Unknown username."),
         }
     }
 }
-
 
 pub struct Credentials {
     pub username: String,
@@ -55,7 +51,6 @@ async fn get_stored_credentials(
     .map(|row| (row.id, Secret::new(row.password_hash)));
     Ok(row)
 }
-
 
 #[tracing::instrument(name = "Validate credentials", skip(credentials, pool))]
 pub async fn validate_credentials(
@@ -89,7 +84,6 @@ pub async fn validate_credentials(
     }
 }
 
-
 #[tracing::instrument(
     name = "Validate credentials",
     skip(expected_password_hash, password_candidate)
@@ -104,13 +98,15 @@ fn verify_password_hash(
     let argon2 = Argon2::default();
     let password_bytes = password_candidate.expose_secret().as_bytes();
 
-    if argon2.verify_password(password_bytes, &expected_password_hash).is_ok() {
+    if argon2
+        .verify_password(password_bytes, &expected_password_hash)
+        .is_ok()
+    {
         Ok(())
     } else {
         Err(AuthError::InvalidCredentials)
     }
 }
-
 
 #[tracing::instrument(name = "Change password", skip(password, pool))]
 pub async fn change_password(

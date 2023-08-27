@@ -4,7 +4,7 @@ CREATE TYPE user_roles AS ENUM ('admin','contributor');
 
 
 CREATE TABLE users (
-    id uuid PRIMARY KEY,
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role user_roles NOT NULL DEFAULT 'contributor',

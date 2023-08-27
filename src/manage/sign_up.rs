@@ -3,7 +3,7 @@ use maud::{html, Markup, DOCTYPE};
 use serde::Deserialize;
 
 use crate::components::header;
-use sqlx::PgPool;
+use sqlx::{postgres::PgDatabaseError, PgPool};
 
 pub async fn sign_up() -> Markup {
     html!(
@@ -56,8 +56,8 @@ pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<Si
 
     let user_created = sqlx::query!(
         r#"
-            INSERT INTO users (username, password_hash)
-            VALUES ($1::TEXT::CITEXT, $2)
+        INSERT INTO users (username, password_hash)
+        VALUES ($1::TEXT::CITEXT, $2)
         "#,
         &form.username,
         &form.password,
@@ -66,17 +66,34 @@ pub async fn create_user(Extension(pool): Extension<PgPool>, Form(form): Form<Si
     .await;
 
     match user_created {
-        Ok(_) => html!(
-            div class="position-absolute shadow-2xl border-rd-1.2 p-10" {
+        Ok(_) => html! {
+            div class="ma w-100 position-absolute shadow-2xl border-rd-1.2 p-10" {
                 p { "Welcome " (&form.username) }
                 a href="/manage/sign_in" { "Click here to sign in !" }
             }
-        ),
-        Err(e) => html!(
-            div class="position-absolute shadow-2xl border-rd-1.2 p-10" {
-                p { "Unable to sign up. Please contact your administrator." } br;
-                p { "Error message" i { (e.to_string()) } }
+        },
+        Err(e) => {
+            let err = e.into_database_error();
+
+            let error_kind: &sqlx::error::ErrorKind = &err
+                .as_ref()
+                .map_or(sqlx::error::ErrorKind::Other, |err| err.kind());
+
+            let message = match &error_kind {
+                sqlx::error::ErrorKind::UniqueViolation => html! {
+                    p { "User " i { (&form.username) } " already exists." br; }
+                },
+                _ => html! {
+                    p { "Unable to sign up. Please contact your administrator." } br;
+                p { "Error message" br; i { @if let Some(err) = err { (err.message())} } }
+                },
+            };
+
+            html! {
+                div class="ma w-100 position-absolute shadow-2xl border-rd-1.2 p-10" {
+                    (message)
+                }
             }
-        ),
+        }
     }
 }
