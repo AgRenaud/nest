@@ -1,9 +1,13 @@
 pub mod greeting;
-pub mod package;
-pub mod persistence;
-pub mod routes;
+
+pub mod authentication;
 pub mod settings;
-pub mod simple_api;
 pub mod startup;
 pub mod telemetry;
-pub mod users;
+
+pub mod admin;
+pub mod components;
+pub mod healthcheck;
+pub mod home;
+pub mod manage;
+pub mod simple;

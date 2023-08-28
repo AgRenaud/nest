@@ -1,11 +1,15 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+pub enum Role {
+    Admin,
+    Contributor,
+}
+
 pub struct User {
-    name: String,
+    pub name: String,
     password: String,
     email: String,
+    pub role: Role,
 }
 
 pub struct EmailAlreadyExists;
@@ -23,5 +27,6 @@ pub trait UserStore: Send + Sync + 'static {
         name: String,
         password: String,
         email: String,
+        role: Role,
     ) -> Result<(), UserError>;
 }

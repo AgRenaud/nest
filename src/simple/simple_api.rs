@@ -1,4 +1,4 @@
-use crate::package;
+use super::package;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

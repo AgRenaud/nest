@@ -1,5 +1,5 @@
-use crate::package::{self, CoreMetadata};
-use crate::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
+use super::package;
+use super::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
 use bytes::Bytes;
@@ -168,7 +168,7 @@ impl Store {
                 _ => Ok(false),
             }
         } else {
-            return Err(PackageError);
+            Err(PackageError)
         }
     }
 

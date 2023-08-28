@@ -11,11 +11,11 @@ use tower::ServiceBuilder;
 use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
 
 use crate::greeting;
-use crate::persistence::Store;
-use crate::routes::healthcheck::healthcheck;
-use crate::routes::home::home;
-use crate::routes::simple::{self, SimpleController};
+use crate::healthcheck::healthcheck;
+use crate::home::home;
+use crate::manage;
 use crate::settings;
+use crate::simple::{self, store::Store, SimpleState};
 use crate::telemetry::{MakeSpan, OnResponse};
 use sqlx::postgres::PgPoolOptions;
 
@@ -35,15 +35,16 @@ impl Application {
             .acquire_timeout(Duration::from_secs(2))
             .connect_lazy_with(config.persistence.database.with_db());
 
-        let simple_store = Store::new(db_pool, store);
+        let simple_store = Store::new(db_pool.clone(), store);
         let simple_store = Arc::new(simple_store);
 
-        let simple_state = SimpleController {
+        let simple_state = SimpleState {
             store: simple_store,
         };
 
         let app = Router::new()
-            .nest("/simple", simple::router(simple_state))
+            .nest("/simple", simple::router(simple_state, db_pool.clone()))
+            .nest("/manage", manage::router(db_pool.clone()))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
 
