@@ -1,5 +1,5 @@
-mod password;
 mod middleware;
+mod password;
 
-pub use password::*;
 pub use middleware::auth;
+pub use password::*;

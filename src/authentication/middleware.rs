@@ -1,18 +1,21 @@
+use axum::middleware::Next;
 use axum::{
     extract::Extension,
     headers::{authorization::Basic, Authorization},
     response::Response,
-    TypedHeader
+    TypedHeader,
 };
-use hyper::{StatusCode, Request};
-use axum::middleware::Next;
+use hyper::{Request, StatusCode};
 use sqlx::PgPool;
 
 use crate::authentication::{self, Credentials};
 
-
-
-pub async fn auth<B>(TypedHeader(auth): TypedHeader<Authorization<Basic>>, Extension(pool): Extension<PgPool>, mut req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
+pub async fn auth<B>(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
+    Extension(pool): Extension<PgPool>,
+    mut req: Request<B>,
+    next: Next<B>,
+) -> Result<Response, StatusCode> {
     let username = auth.username().to_string();
     let password = secrecy::Secret::new(auth.password().to_string());
     let credentials = Credentials { username, password };
@@ -24,4 +27,3 @@ pub async fn auth<B>(TypedHeader(auth): TypedHeader<Authorization<Basic>>, Exten
         Err(StatusCode::UNAUTHORIZED)
     }
 }
-

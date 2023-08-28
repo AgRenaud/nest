@@ -6,10 +6,10 @@ use axum::{
     extract::{Path, State},
     response::IntoResponse,
     routing::{get, post},
-    Router
+    Router,
 };
-use hyper::{header, StatusCode};
 use axum_typed_multipart::TypedMultipart;
+use hyper::{header, StatusCode};
 use sqlx::PgPool;
 
 pub mod models;
@@ -17,21 +17,18 @@ pub mod package;
 pub mod simple_api;
 pub mod store;
 
+use crate::authentication::auth;
 use models::RequestData;
 use package::Distribution;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
-use crate::authentication::auth;
-
 
 #[derive(Clone)]
 pub struct SimpleState {
     pub store: Arc<dyn simple_api::SimpleStore>,
 }
 
-
 pub fn router(state: SimpleState, pool: PgPool) -> Router {
-
     let middleware = ServiceBuilder::new()
         .layer(AddExtensionLayer::new(pool))
         .into_inner();
