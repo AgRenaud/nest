@@ -4,14 +4,13 @@ use maud::{html, Markup, DOCTYPE};
 
 use axum::{
     extract::{Path, State},
-    headers::{authorization::Basic, Authorization},
     response::IntoResponse,
     routing::{get, post},
-    Router, TypedHeader,
+    Router
 };
 use hyper::{header, StatusCode};
-
 use axum_typed_multipart::TypedMultipart;
+use sqlx::PgPool;
 
 pub mod models;
 pub mod package;
@@ -20,24 +19,37 @@ pub mod store;
 
 use models::RequestData;
 use package::Distribution;
+use tower::ServiceBuilder;
+use tower_http::add_extension::AddExtensionLayer;
+use crate::authentication::auth;
+
 
 #[derive(Clone)]
 pub struct SimpleState {
     pub store: Arc<dyn simple_api::SimpleStore>,
 }
 
-pub fn router(state: SimpleState) -> Router {
+
+pub fn router(state: SimpleState, pool: PgPool) -> Router {
+
+    let middleware = ServiceBuilder::new()
+        .layer(AddExtensionLayer::new(pool))
+        .into_inner();
+
     Router::new()
-        .route("/", post(upload).get(list_packages))
+        .route("/", post(upload))
+        .route_layer(axum::middleware::from_fn(auth))
+        .route("/", get(list_packages))
         .route("/:project/", get(list_dists))
         .layer(axum::extract::DefaultBodyLimit::disable())
         .route("/:project/:distribution", get(download_package))
         .with_state(state)
+        .layer(middleware)
 }
 
 #[tracing::instrument(
         name = "Simple::Upload a package",
-        skip(state, auth, data),
+        skip(state, data),
         fields(
             project = %data.name,
             project_version = %data.version
@@ -45,7 +57,6 @@ pub fn router(state: SimpleState) -> Router {
     )]
 async fn upload(
     State(state): State<SimpleState>,
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     TypedMultipart(data): TypedMultipart<RequestData>,
 ) {
     let distribution: Distribution = data.into();
