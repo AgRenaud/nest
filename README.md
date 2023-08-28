@@ -39,8 +39,8 @@ You can install [`Bunyan`](https://crates.io/crates/bunyan) to get human readabl
   - ~~[ ] CLI (Migrations, Start server, ...)~~
 - Manage users:
   - [ ] Admin page
-  - [ ] User basic auth
-  - [ ] User sign up
+  - [x] User basic auth
+  - [x] User sign up
   - [ ] User Roles (Contributor & admin)
 - [ ] Embed package readme to website
 - [ ] Add Mirrors (and cache?) to others python indexes.
