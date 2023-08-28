@@ -43,7 +43,7 @@ impl Application {
         };
 
         let app = Router::new()
-            .nest("/simple", simple::router(simple_state))
+            .nest("/simple", simple::router(simple_state, db_pool.clone()))
             .nest("/manage", manage::router(db_pool.clone()))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
