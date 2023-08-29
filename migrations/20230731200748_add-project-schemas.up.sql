@@ -5,7 +5,7 @@ CREATE TABLE projects (
     name TEXT UNIQUE NOT NULL,
     normalized_name TEXT UNIQUE NOT NULL,
     created DATE DEFAULT CURRENT_DATE,
-    has_docs BOOL DEFAULT False
+    has_docs BOOL NOT NULL DEFAULT False
 );
 
 CREATE INDEX idx_project_name ON projects (normalized_name);

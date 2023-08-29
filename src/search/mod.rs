@@ -25,7 +25,7 @@ pub fn router(db_pool: PgPool) -> Router {
 pub fn search_bar() -> Markup {
     html!{
         div class="w-100% relative flex-content-center" {
-            input class="p5px h20px w100% b-3px b-rd-2 b-s-solid outline-none"
+            input class="p1 h10 w100% b-3px b-rd-2 b-s-solid outline-none transition-all"
                 type="search"
                 placeholder="Search package.."
                 hx-post="/search"
@@ -33,8 +33,8 @@ pub fn search_bar() -> Markup {
                 hx-trigger="keyup changed delay:500ms, search"
                 hx-target="#results"
                 hx-swap="innerHTML"
-                hx-indicator="#spinner";
-            span id="spinner" class="htmx-indicator" { "Searching.." }
+                hx-indicator="#search-indicator";
+            span id="search-indicator" class="htmx-indicator" { "Searching.." }
             div id="results" {}
         }
     }
@@ -49,15 +49,20 @@ pub struct Query {
 
 #[derive(Deserialize)]
 struct Package {
-    name: String
+    name: String,
+    has_docs: bool
 }
 
 pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>) -> Markup {
 
     let query = query.search;
 
+    if query.trim().len() == 0usize {
+        return html! {};
+    }
+
     let packages = sqlx::query_as!(Package, r#"
-        SELECT name FROM projects
+        SELECT name, has_docs FROM projects
         WHERE normalized_name LIKE (normalize_pep426_name($1) || '%')
         "#,
         query)
@@ -66,9 +71,14 @@ pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>
 
     match packages {
         Ok(packages) => html! {
-            ul {
+            ul class="w300px m-auto list-none p0" {
                 @for package in packages {
-                    li { (package.name) }
+                    li class="flex justify-between center bg-#f0f0f0 b-1px b-s-solid b-#ccc b-rd-5px shadow-2px p10px m-b-10px transition-opacity" {
+                        p class="m0" { (package.name) }
+                        div class="flex justify" {
+                            p class="m1px font-20px" { "🗎" }
+                        }
+                    }
                 }
             }
         },
