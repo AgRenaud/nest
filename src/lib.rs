@@ -10,5 +10,5 @@ pub mod components;
 pub mod healthcheck;
 pub mod home;
 pub mod manage;
-pub mod simple;
 pub mod search;
+pub mod simple;
