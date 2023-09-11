@@ -14,6 +14,7 @@ use crate::greeting;
 use crate::healthcheck::healthcheck;
 use crate::home::home;
 use crate::manage;
+use crate::search;
 use crate::settings;
 use crate::simple::{self, store::Store, SimpleState};
 use crate::telemetry::{MakeSpan, OnResponse};
@@ -45,6 +46,7 @@ impl Application {
         let app = Router::new()
             .nest("/simple", simple::router(simple_state, db_pool.clone()))
             .nest("/manage", manage::router(db_pool.clone()))
+            .nest("/search", search::router(db_pool.clone()))
             .route("/healthcheck", get(healthcheck))
             .route("/", get(home));
 
