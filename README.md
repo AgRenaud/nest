@@ -9,8 +9,8 @@ To run the server locally, first run `postgres` instance with `docker-compose up
 Then you can initialize the database by running sqlx migrations.
 
 ```sh
-sqlx database create -D postgres://nest-user:nest-secret@localhost:5432/postgres
-sqlx migrate run -D postgres://nest-user:nest-secret@localhost:5432/postgres
+sqlx database create -D postgres://nest-user:nest-secret@localhost:5432/nest
+sqlx migrate run -D postgres://nest-user:nest-secret@localhost:5432/nest
 ```
 
 Then run the server with `cargo run`.

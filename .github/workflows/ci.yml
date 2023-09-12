@@ -14,9 +14,16 @@ jobs:
 
     services:
       database:
-        image: surrealdb/surrealdb:latest
-        ports:
-          - 8000:8000
+        image: postgres
+        env:
+          POSTGRES_USER: nest-user
+          POSTGRES_PASSWORD: nest-secret
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Set up rust

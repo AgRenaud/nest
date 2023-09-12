@@ -16,9 +16,12 @@ pub async fn spawn_app() -> TestApp {
                 path: String::from("./simple-index"),
             },
             database: settings::DatabaseSettings {
-                address: String::from("localhost:8000"),
-                user: String::from("root"),
-                password: String::from("root"),
+                host: String::from("localhost"),
+                port: 8000,
+                username: String::from("nest-user"),
+                password: String::from("nest-secret"),
+                name: String::from("nest"),
+                require_ssl: false
             },
         },
     };

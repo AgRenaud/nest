@@ -8,6 +8,7 @@ services:
     image: docker.io/postgres:latest 
     restart: always
     environment:
+      - POSTGRES_DB=nest
       - POSTGRES_USER=nest-user
       - POSTGRES_PASSWORD=nest-secret
     ports:
