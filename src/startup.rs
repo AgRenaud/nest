@@ -27,6 +27,8 @@ pub struct Application {
 
 impl Application {
     pub async fn build(config: settings::Settings) -> Self {
+        std::fs::create_dir_all(config.persistence.object_storage.path.clone())
+            .expect("Unable to create folder for wheels");
         let storage =
             LocalFileSystem::new_with_prefix(config.persistence.object_storage.path.clone())
                 .expect("Unable to set up local index.");
