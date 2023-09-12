@@ -358,11 +358,11 @@ pub struct Distribution {
     pub python_version: Option<String>,
 }
 
-fn pep_503_normalized_name(_name: &String) -> Result<(), ValidationError> {
+fn pep_503_normalized_name(_name: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-fn pep_440_version_format(version: &String) -> Result<(), ValidationError> {
+fn pep_440_version_format(version: &str) -> Result<(), ValidationError> {
     let pep440 = r"";
     let re = regex::Regex::new(pep440).unwrap();
 
@@ -373,7 +373,7 @@ fn pep_440_version_format(version: &String) -> Result<(), ValidationError> {
     Ok(())
 }
 
-fn pep_301_valid_classifier(names: &Vec<String>) -> Result<(), ValidationError> {
+fn pep_301_valid_classifier(names: &[String]) -> Result<(), ValidationError> {
     let pep301 = r"^[\w\d\.\-\ \/]+(::[\w\d\.\-\ \/]+)*$";
     let re = regex::Regex::new(pep301).unwrap();
 

@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use axum::{Extension, Form};
 use maud::{html, Markup, DOCTYPE};
 use serde::Deserialize;

@@ -48,7 +48,7 @@ struct Package {
 pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>) -> Markup {
     let query = query.search;
 
-    if query.trim().len() == 0usize {
+    if query.trim().is_empty() {
         return html! {};
     }
 
