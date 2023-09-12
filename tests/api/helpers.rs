@@ -21,7 +21,7 @@ pub async fn spawn_app() -> TestApp {
                 username: String::from("nest-user"),
                 password: String::from("nest-secret"),
                 name: String::from("nest"),
-                require_ssl: false
+                require_ssl: false,
             },
         },
     };
