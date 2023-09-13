@@ -44,7 +44,7 @@ You can install [`Bunyan`](https://crates.io/crates/bunyan) to get human readabl
   - [ ] User Roles (Contributor & admin)
 - [ ] Embed package readme to website
 - [ ] Add Mirrors (and cache?) to others python indexes.
-- [ ] Search package
+- [x] Search package
 
 > Strikethrough text won't be implemented for first release.
 
