@@ -239,9 +239,23 @@ impl SimpleStore for Store {
         let release = sqlx::query!(
             r#"
             INSERT INTO releases(
-            version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id)
+                version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id)
             VALUES
                 ($1, $2, pep440_is_prerelease($1), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            ON CONFLICT(project_id, canonical_version) DO UPDATE
+            SET
+                is_prerelease=pep440_is_prerelease($1),
+                author=$3,
+                author_email=$4,
+                maintainer=$5,
+                maintainer_email=$6,
+                home_page=$7,
+                license=$8,
+                summary=$9,
+                keywords=$10,
+                platform=$11,
+                download_url=$12,
+                requires_python=$13
             RETURNING id
             "#,
             &core_metadata.version,
@@ -270,6 +284,16 @@ impl SimpleStore for Store {
             )
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7, lower($8), lower($9), $10)
+            ON CONFLICT(filename) DO UPDATE
+            SET
+                python_version=$1,
+                requires_python=$2,
+                packagetype=$3,
+                path=$5,
+                size=$6,
+                md5_digest=$7,
+                sha256_digest=lower($8),
+                blake2_256_digest=lower($9)
             "#,
             &distribution.python_version.as_deref().unwrap_or(""),
             &core_metadata.requires_python.as_deref().unwrap_or(""),

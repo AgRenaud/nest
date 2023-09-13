@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO release_files(\n                python_version, requires_python, packagetype, filename, path, size, md5_digest, sha256_digest, blake2_256_digest, release_id\n            )\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7, lower($8), lower($9), $10)\n            ON CONFLICT(filename) DO UPDATE\n            SET\n                python_version=$1,\n                requires_python=$2,\n                packagetype=$3,\n                path=$5,\n                size=$6,\n                md5_digest=$7,\n                sha256_digest=lower($8),\n                blake2_256_digest=lower($9)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "packagetype",
+            "kind": {
+              "Enum": [
+                "bdist_dmg",
+                "bdist_dumb",
+                "bdist_egg",
+                "bdist_msi",
+                "bdist_rpm",
+                "bdist_wheel",
+                "bdist_wininst",
+                "sdist"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45949cd8a84364305b9924d4f1f42e8ffa95889a5160ef5657c56076cbd60d7a"
+}
