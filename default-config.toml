@@ -11,4 +11,4 @@ host = '127.0.0.1'
 port = 5432
 username = 'nest-user'
 password = 'nest-secret'
-name = 'postgres'
+name = 'nest'

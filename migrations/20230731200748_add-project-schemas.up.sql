@@ -11,8 +11,8 @@ CREATE OR REPLACE FUNCTION normalize_pep426_name(text)
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;
 
-CREATE OR REPLACE FUNCTION pep440_is_prerelease(text) 
-    RETURNS boolean as 
+CREATE OR REPLACE FUNCTION pep440_is_prerelease(text)
+    RETURNS boolean as
     $$
         SELECT lower($1) ~* '(a|b|rc|dev|alpha|beta|c|pre|preview)'
     $$
@@ -30,7 +30,6 @@ CREATE TABLE projects (
 );
 
 CREATE INDEX idx_project_name ON projects (normalized_name);
-
 
 CREATE TYPE packagetype AS ENUM ('bdist_dmg','bdist_dumb','bdist_egg','bdist_msi','bdist_rpm','bdist_wheel','bdist_wininst','sdist');
 CREATE TYPE dependency_kind AS ENUM ('requires','provides','obsoletes','requires_dist','provides_dist','obsoletes_dist','requires_external');
@@ -53,6 +52,8 @@ CREATE TABLE releases (
     requires_python TEXT,
 
     project_id INT,
+
+    CONSTRAINT unique_project_version UNIQUE(project_id, canonical_version),
 
     CONSTRAINT fk_project
       FOREIGN KEY(project_id)

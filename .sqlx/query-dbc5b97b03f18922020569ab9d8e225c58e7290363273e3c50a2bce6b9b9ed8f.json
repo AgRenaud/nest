@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO releases(\n                version, canonical_version, is_prerelease, author, author_email, maintainer, maintainer_email, home_page, license, summary, keywords, platform, download_url, requires_python, project_id)\n            VALUES\n                ($1, $2, pep440_is_prerelease($1), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n            ON CONFLICT(project_id, canonical_version) DO UPDATE\n            SET\n                is_prerelease=pep440_is_prerelease($1),\n                author=$3,\n                author_email=$4,\n                maintainer=$5,\n                maintainer_email=$6,\n                home_page=$7,\n                license=$8,\n                summary=$9,\n                keywords=$10,\n                platform=$11,\n                download_url=$12,\n                requires_python=$13\n            RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dbc5b97b03f18922020569ab9d8e225c58e7290363273e3c50a2bce6b9b9ed8f"
+}
