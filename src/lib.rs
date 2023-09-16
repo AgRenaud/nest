@@ -12,3 +12,4 @@ pub mod home;
 pub mod manage;
 pub mod search;
 pub mod simple;
+pub mod documentation;

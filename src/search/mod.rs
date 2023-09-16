@@ -1,4 +1,5 @@
-use axum::{extract::Extension, routing::post, Form, Router};
+use axum::{extract::{Extension, Path}, routing::{post, get}, Form, Router, response::{Response, IntoResponse}};
+use hyper::StatusCode;
 use maud::{html, Markup};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -11,7 +12,10 @@ pub fn router(db_pool: PgPool) -> Router {
         .layer(AddExtensionLayer::new(db_pool))
         .into_inner();
 
-    Router::new().route("/", post(search)).layer(middleware)
+    Router::new()
+        .route("/", post(search))
+        .route("/documentation/:project", get(show_documentation))
+        .layer(middleware)
 }
 
 pub fn search_bar() -> Markup {
@@ -32,6 +36,13 @@ pub fn search_bar() -> Markup {
             div id="results" {}
         }
     }
+}
+
+pub async fn show_documentation(Path(package): Path<String>) -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [("HX-Redirect", format!("/packages/{}/latest", &package))],
+    )
 }
 
 #[derive(Deserialize)]
@@ -63,22 +74,27 @@ pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>
     .fetch_all(&pool)
     .await;
 
+
     match packages {
-        Ok(packages) => html! {
-            ul class="min-w300px m-auto list-none p0" {
-                @for package in packages {
-                    li class="
-                        flex justify-between center bg-#f0f0f0
-                        b-1px b-s-solid b-#ccc b-rd-5px
-                        shadow-2px
-                        p10px
-                        m-b-10px
-                        transition-opacity
-                        hover-bg-black hover-color-white hover-cursor-pointer" {
-                        p class="m0" { (&package.name) }
-                        div class="flex justify" {
-                            @if package.has_docs { p class="m1px font-20px" { "🗎" } }
-                            @else { p class="m1px font-20px" { "" } }
+        Ok(packages) => {
+            html! {
+                ul class="min-w300px m-auto list-none p0" {
+                    @for package in packages {
+                        li
+                            hx-get=(format!("/search/documentation/{}", &package.name))
+                            class="
+                            flex justify-between center bg-#f0f0f0
+                            b-1px b-s-solid b-#ccc b-rd-5px
+                            shadow-2px
+                            p10px
+                            m-b-10px
+                            transition-opacity
+                            hover-bg-black hover-color-white hover-cursor-pointer" {
+                            p class="m0" { (&package.name) }
+                            div class="flex justify" {
+                                @if package.has_docs { p class="m1px font-20px" { "🗎" } }
+                                @else { p class="m1px font-20px" { "" } }
+                            }
                         }
                     }
                 }
