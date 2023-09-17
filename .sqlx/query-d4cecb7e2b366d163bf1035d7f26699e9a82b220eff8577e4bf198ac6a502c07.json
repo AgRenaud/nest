@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO release_descriptions (\n                    content_type, raw, html, release_id\n                )\n                VALUES\n                    ($1, $2, $3, $4)\n                ON CONFLICT(release_id) DO UPDATE\n                SET\n                    content_type=$1,\n                    raw=$2,\n                    html=$3\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d4cecb7e2b366d163bf1035d7f26699e9a82b220eff8577e4bf198ac6a502c07"
+}

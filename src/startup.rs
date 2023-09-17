@@ -10,10 +10,10 @@ use object_store::local::LocalFileSystem;
 use tower::ServiceBuilder;
 use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
 
+use crate::documentation;
 use crate::greeting;
 use crate::healthcheck::healthcheck;
 use crate::home::home;
-use crate::documentation;
 use crate::manage;
 use crate::search;
 use crate::settings;

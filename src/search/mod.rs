@@ -1,4 +1,9 @@
-use axum::{extract::{Extension, Path}, routing::{post, get}, Form, Router, response::{Response, IntoResponse}};
+use axum::{
+    extract::{Extension, Path},
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Form, Router,
+};
 use hyper::StatusCode;
 use maud::{html, Markup};
 use serde::Deserialize;
@@ -74,7 +79,6 @@ pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>
     .fetch_all(&pool)
     .await;
 
-
     match packages {
         Ok(packages) => {
             html! {
@@ -99,7 +103,7 @@ pub async fn search(Extension(pool): Extension<PgPool>, Form(query): Form<Query>
                     }
                 }
             }
-        },
+        }
         Err(_) => html! {
             p class="red" { "Oups. There is an error" }
         },
