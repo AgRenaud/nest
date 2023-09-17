@@ -319,7 +319,7 @@ impl SimpleStore for Store {
 
             let description = match description_type {
                 t if t.contains("text/markdown") => {
-                    let parser = Parser::new(&desc);
+                    let parser = Parser::new(desc);
                     let mut html_output = String::new();
 
                     html::push_html(&mut html_output, parser);

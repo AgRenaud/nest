@@ -3,7 +3,7 @@ use axum::{
     routing::get,
     Router,
 };
-use maud::{html, Markup, DOCTYPE, PreEscaped};
+use maud::{html, Markup, PreEscaped, DOCTYPE};
 use sqlx::PgPool;
 
 use crate::components::header;
@@ -21,10 +21,10 @@ pub fn router(db_pool: PgPool) -> Router {
 }
 
 pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -> Markup {
-
     let version = match version {
         v if v.eq("latest") => {
-            let latest_version = sqlx::query!(r#"
+            let latest_version = sqlx::query!(
+                r#"
                 WITH selected_project AS (
                     SELECT id
                     FROM projects
@@ -37,14 +37,15 @@ pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -
                 ORDER BY r.version DESC
                 LIMIT 1
                 "#,
-                project)
-                .fetch_one(&pool)
-                .await
-                .expect("Unable to get latest version");
+                project
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("Unable to get latest version");
 
             latest_version.version
-        },
-        v => v.to_string()
+        }
+        v => v.to_string(),
     };
 
     let html_content = sqlx::query!(
@@ -64,11 +65,12 @@ pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -
             LIMIT 1
         "#,
         project,
-        version)
-        .fetch_one(&pool)
-        .await
-        .expect("Unable to fetch html content")
-        .html;
+        version
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("Unable to fetch html content")
+    .html;
 
     html! {
         div class="border-10 max-w-2xl m-auto" {
