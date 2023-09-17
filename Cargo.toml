@@ -43,6 +43,7 @@ secrecy = "0.8.0"
 rand = "0.8.5"
 anyhow = "1"
 axum-login = { version = "0.6.0", features = ["postgres"] }
+pulldown-cmark = "0.9.3"
 
 [dev-dependencies]
 anyhow = "1"

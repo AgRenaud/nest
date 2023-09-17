@@ -10,6 +10,7 @@ use object_store::local::LocalFileSystem;
 use tower::ServiceBuilder;
 use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
 
+use crate::documentation;
 use crate::greeting;
 use crate::healthcheck::healthcheck;
 use crate::home::home;
@@ -50,6 +51,7 @@ impl Application {
             .nest("/manage", manage::router(db_pool.clone()))
             .nest("/search", search::router(db_pool.clone()))
             .route("/healthcheck", get(healthcheck))
+            .nest("/packages", documentation::router(db_pool.clone()))
             .route("/", get(home));
 
         let addr = format!("{}:{}", config.application.host, config.application.port);

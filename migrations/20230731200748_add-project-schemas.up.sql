@@ -88,8 +88,7 @@ CREATE TABLE release_descriptions (
     content_type TEXT,
     raw TEXT NOT NULL,
     html TEXT NOT NULL,
-
-    release_id INT,
+    release_id INT UNIQUE,
 
     CONSTRAINT fk_release_descriptions
       FOREIGN KEY(release_id)

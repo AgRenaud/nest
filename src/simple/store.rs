@@ -3,6 +3,7 @@ use super::simple_api::{PackageError, PkgDist, ProjectName, SimpleStore};
 
 use anyhow::Result;
 use bytes::Bytes;
+use pulldown_cmark::{html, Parser};
 use regex::Regex;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -311,9 +312,22 @@ impl SimpleStore for Store {
             .expect("Unable to add release file");
 
         if let Some(desc) = &core_metadata.description {
-            tracing::info!("Receive description");
-            let description_type = &core_metadata.description_content_type;
-            tracing::info!("Description type: {:?}", description_type);
+            let description_type = &core_metadata
+                .description_content_type
+                .to_owned()
+                .unwrap_or("text/plain".to_string());
+
+            let description = match description_type {
+                t if t.contains("text/markdown") => {
+                    let parser = Parser::new(desc);
+                    let mut html_output = String::new();
+
+                    html::push_html(&mut html_output, parser);
+
+                    html_output
+                }
+                _ => String::new(),
+            };
 
             let _ = sqlx::query!(
                 r#"
@@ -322,10 +336,15 @@ impl SimpleStore for Store {
                 )
                 VALUES
                     ($1, $2, $3, $4)
+                ON CONFLICT(release_id) DO UPDATE
+                SET
+                    content_type=$1,
+                    raw=$2,
+                    html=$3
                 "#,
-                description_type.as_deref().unwrap_or("text/rst"),
+                &description_type,
                 desc,
-                "",
+                description,
                 &release_id
             )
             .execute(&mut *tx)
