@@ -37,9 +37,6 @@ pip install --index-url http://localhost:8080/simple package
 
 ### Core features
 
-> `twine upload`, `poetry publish` and other similar commands should work.
-> Simple `pip install --extra-index-url ...` is working too.
-
 - Simple Index Interface
   - [x] [PEP 503 - Simple Repository API](https://peps.python.org/pep-0503/)
   - [x] [PEP 629 - Versioning PyPI’s Simple API](https://peps.python.org/pep-0629/)
