@@ -1,26 +1,20 @@
 use axum::{
     extract::{Extension, Path},
+    response::IntoResponse,
     routing::get,
     Router,
 };
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use axum_template::RenderHtml;
+use serde::Serialize;
 use sqlx::PgPool;
 
-use crate::components::header;
-use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use crate::{engine::AppEngine, state::AppState};
 
-pub fn router(db_pool: PgPool) -> Router {
-    let middleware = ServiceBuilder::new()
-        .layer(AddExtensionLayer::new(db_pool))
-        .into_inner();
-
-    Router::new()
-        .route("/:project/:version", get(documentation))
-        .layer(middleware)
+pub fn router() -> Router<AppState> {
+    Router::new().route("/:project/:version", get(documentation))
 }
 
-pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -> Markup {
+pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -> String {
     let version = match version {
         v if v.eq("latest") => {
             let latest_version = sqlx::query!(
@@ -48,7 +42,7 @@ pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -
         v => v.to_string(),
     };
 
-    let html_content = sqlx::query!(
+    sqlx::query!(
         r#"
         WITH selected_project AS (
             SELECT id
@@ -70,32 +64,24 @@ pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -
     .fetch_one(&pool)
     .await
     .expect("Unable to fetch html content")
-    .html;
+    .html
+}
 
-    html! {
-        div class="border-10 max-w-2xl m-auto" {
-            (PreEscaped(html_content))
-        }
-    }
+#[derive(Serialize)]
+struct Documentation {
+    package_name: String,
+    content: String,
 }
 
 pub async fn documentation(
+    engine: AppEngine,
     Extension(pool): Extension<PgPool>,
     Path((project, version)): Path<(String, String)>,
-) -> Markup {
+) -> impl IntoResponse {
     let doc = documentation_content(pool, &project, &version).await;
-
-    html!(
-        (DOCTYPE)
-        head {
-            meta charset="utf-8";
-            script src="https://unpkg.com/htmx.org@1.9.3" {};
-            script src="https://cdn.jsdelivr.net/npm/@unocss/runtime" {};
-            title { "Nest" }
-        }
-        body class="m0 p0 font-sans" {
-            (header())
-            (doc)
-        }
-    )
+    let doc = Documentation {
+        package_name: project,
+        content: doc,
+    };
+    RenderHtml("documentation.jinja", engine, doc)
 }

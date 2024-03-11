@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use maud::{html, Markup, DOCTYPE};
+use axum_template::RenderHtml;
 
 use axum::{
     extract::{Path, State},
@@ -10,29 +8,20 @@ use axum::{
 };
 use axum_typed_multipart::TypedMultipart;
 use hyper::{header, StatusCode};
-use sqlx::PgPool;
+use serde::Serialize;
 
 pub mod models;
 pub mod package;
 pub mod simple_api;
 pub mod store;
 
-use crate::authentication::auth;
+use crate::{authentication::auth, engine::AppEngine, state::AppState};
 use models::RequestData;
 use package::Distribution;
-use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
 
-#[derive(Clone)]
-pub struct SimpleState {
-    pub store: Arc<dyn simple_api::SimpleStore>,
-}
+use self::simple_api::SimpleState;
 
-pub fn router(state: SimpleState, pool: PgPool) -> Router {
-    let middleware = ServiceBuilder::new()
-        .layer(AddExtensionLayer::new(pool))
-        .into_inner();
-
+pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", post(upload))
         .route_layer(axum::middleware::from_fn(auth))
@@ -40,87 +29,78 @@ pub fn router(state: SimpleState, pool: PgPool) -> Router {
         .route("/:project/", get(list_dists))
         .layer(axum::extract::DefaultBodyLimit::disable())
         .route("/:project/:distribution", get(download_package))
-        .with_state(state)
-        .layer(middleware)
 }
 
 #[tracing::instrument(
         name = "Simple::Upload a package",
-        skip(state, data),
+        skip(store, data),
         fields(
             project = %data.name,
             project_version = %data.version
         )
     )]
 async fn upload(
-    State(state): State<SimpleState>,
+    State(store): State<SimpleState>,
     TypedMultipart(data): TypedMultipart<RequestData>,
 ) {
     let distribution: Distribution = data.into();
 
-    if (state.store.upload_package(distribution).await).is_err() {
+    if (store.upload_package(distribution).await).is_err() {
         tracing::error!("Failed to upload package");
     } else {
         tracing::info!("Package has been added to index");
     }
 }
 
+#[derive(Serialize)]
+struct Dists {
+    dists: Vec<String>,
+}
+
 #[tracing::instrument(
         name = "Simple::Get distributions list",
-        skip(state, project),
+        skip(engine, store, project),
         fields(
             project = %project
         )
     )]
-async fn list_dists(Path(project): Path<String>, State(state): State<SimpleState>) -> Markup {
-    let dists = state.store.get_dists(&project).await.unwrap();
+async fn list_dists(
+    engine: AppEngine,
+    Path(project): Path<String>,
+    State(store): State<SimpleState>,
+) -> impl IntoResponse {
+    let dists = store.get_dists(&project).await.unwrap();
     let dists: Vec<String> = dists.iter().map(|d| d.filename.to_owned()).collect();
 
-    html! {
-        (DOCTYPE)
-        meta charset="utf-8";
-        meta name="pypi:repository-version" content="1.1";
-        title { "Links for " (&project) }
-        body {
-            h1 { "Links for " (&project) }
-            @for dist in &dists {
-                a href={"/simple/" (&project) "/" (&dist) } { (&dist) } br;
-            }
-        }
-    }
+    RenderHtml("simple/dists.jinja", engine, Dists { dists })
 }
 
-#[tracing::instrument(name = "Simple::List package", skip(state))]
-async fn list_packages(State(state): State<SimpleState>) -> Markup {
-    let projects = state.store.get_projects().await.unwrap();
+#[derive(Serialize)]
+struct Projects {
+    projects: Vec<String>,
+}
+
+#[tracing::instrument(name = "Simple::List package", skip(engine, store))]
+async fn list_packages(engine: AppEngine, State(store): State<SimpleState>) -> impl IntoResponse {
+    let projects = store.get_projects().await.unwrap();
     let projects: Vec<String> = projects.iter().map(|p| p.name.to_owned()).collect();
 
-    html! {
-        (DOCTYPE)
-        meta charset="utf-8";
-        meta name="pypi:repository-version" content="1.1";
-        title { "Simple index" }
-        body {
-            @for project in &projects {
-                a href={"/simple/" (&project) "/"} { (&project) } br;
-            }
-        }
-    }
+    RenderHtml("simple/packages.jinja", engine, Projects { projects })
 }
 
 #[tracing::instrument(
         name = "Simple::Get distributions list",
-        skip(state, project, distribution),
+        skip(store, project, distribution),
         fields(
             project = %project,
             distribution = %distribution
         )
     )]
 async fn download_package(
-    State(state): State<SimpleState>,
+    State(store): State<SimpleState>,
     Path((project, distribution)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let file = state.store.get_dist_file(&project, &distribution).await;
+    let file = store.get_dist_file(&project, &distribution).await;
 
     match file {
         Ok(file) => {

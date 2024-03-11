@@ -1,0 +1,15 @@
+<dialog open id="errorMessage">
+  <article>
+    <header>
+      <button aria-label="Close" rel="prev" hx-on:click="errorMessage.close()"></button>
+      <p>
+        <strong>❌ Oups, something went wrong!</strong>
+      </p>
+    </header>
+    <p>
+    {{ message }}
+    </p>
+  </article>
+</dialog>
+
+

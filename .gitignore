@@ -4,3 +4,4 @@ dist/
 data/
 .vscode/
 simple-index/
+venv

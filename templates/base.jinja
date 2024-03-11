@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class='h-full text-[18px]'>
+  <head>
+  {% block head -%}
+    <title>{% block title -%}{%- endblock title %}</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    {% block meta_seo %}{% endblock meta_seo %}
+    {% block meta_og %}{% endblock meta_og %}
+
+    {% block css -%}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css"/>
+        <style>
+        :root {
+            --pico-font-weight: 300;
+            --pico-font-size: 100%;
+        }
+        </style>
+    {%- endblock css %}
+
+    {% block headjs -%}
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    {%- endblock headjs %}
+  {%- endblock head %}
+  </head>
+
+  <body>
+    <header class="container">
+        {% include 'navbar.jinja' %}
+    </header>
+
+    <main class='container'>
+      {% block content -%}
+      {%- endblock content %}
+    </main>
+
+    {% block js -%}
+        <script src="/static/theme-switcher.js"></script>
+    {%- endblock js %}
+  </body>
+</html>

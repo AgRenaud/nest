@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::package;
 
 use anyhow::Result;
@@ -33,3 +35,5 @@ pub trait SimpleStore: Send + Sync + 'static {
         dist: &str,
     ) -> Result<package::CoreMetadata, PackageError>;
 }
+
+pub type SimpleState = Arc<dyn SimpleStore>;

@@ -1,0 +1,39 @@
+{% extends 'base.jinja' %}
+
+{% block title %}Nest{% endblock %}
+
+{% block css %}
+{{ super() }}
+<style>
+    #signin_form {
+        width: 26em;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
+{% endblock css %}
+
+{% block content %}
+<section id="signin_form">
+    <h1>Sign In</h1>
+    <form action="/manage/login" method="post">
+        <section>
+            <label for="uname">Username</label>
+            <input type="text" placeholder="Enter Username" name="uname" required>
+        </section>
+        <section>
+            <label for="psw">Password</label>
+            <input type="password" placeholder="Enter Password" name="psw" required>
+        </section>
+        <section>
+            <button type="submit">Login</button>
+            <a href="#">Forgot Password?</a>
+            <br>
+            <a href="/manage/sign_up">Create an account</a>
+        </section>
+    </form>
+</section>
+
+
+
+{% endblock content %}

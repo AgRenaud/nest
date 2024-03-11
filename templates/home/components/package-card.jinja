@@ -1,0 +1,15 @@
+<style>
+  .package-card:hover {
+  transition: all 0.5s linear;
+  border: 1px solid white;
+  cursor: pointer;
+}
+</style>
+
+<section>
+    {% for p in packages %}
+        <article class="package-card" hx-get="/search/doc/{{ p.name }}">
+            {{ p.name }}
+        </article>
+    {% endfor %}
+</section>

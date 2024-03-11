@@ -1,24 +1,34 @@
-use std::net::{SocketAddr, TcpListener};
+use std::net::TcpListener;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::routing::get;
-use axum::Router;
+use axum::{routing::get, Router};
 
+use axum_template::engine::Engine;
+use hyper::body::Incoming;
+use hyper::Request;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server;
+use minijinja::{path_loader, Environment};
+use minijinja_autoreload::AutoReloader;
 use object_store::local::LocalFileSystem;
+use tokio::net::TcpListener as TokioTcpListener;
+use tower::Service;
 
 use tower::ServiceBuilder;
-use tower_http::{request_id::MakeRequestUuid, trace::TraceLayer, ServiceBuilderExt};
+use tower_http::add_extension::AddExtensionLayer;
+use tower_http::request_id::MakeRequestUuid;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
+use tower_http::{trace::TraceLayer, ServiceBuilderExt};
+use tracing::Level;
 
-use crate::documentation;
+use crate::front;
 use crate::greeting;
 use crate::healthcheck::healthcheck;
-use crate::home::home;
-use crate::manage;
-use crate::search;
 use crate::settings;
-use crate::simple::{self, store::Store, SimpleState};
-use crate::telemetry::{MakeSpan, OnResponse};
+use crate::simple::{self, store::Store};
+use crate::state::AppState;
 use sqlx::postgres::PgPoolOptions;
 
 pub struct Application {
@@ -42,20 +52,50 @@ impl Application {
         let simple_store = Store::new(db_pool.clone(), store);
         let simple_store = Arc::new(simple_store);
 
-        let simple_state = SimpleState {
+        let jinja = AutoReloader::new(move |notifier| {
+            let template_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
+
+            let mut env = Environment::new();
+            env.set_loader(path_loader(&template_path));
+            notifier.set_fast_reload(true);
+            notifier.watch_path(&template_path, true);
+            Ok(env)
+        });
+
+        let app_state = AppState {
+            engine: Engine::from(jinja),
             store: simple_store,
         };
 
         let app = Router::new()
-            .nest("/simple", simple::router(simple_state, db_pool.clone()))
-            .nest("/manage", manage::router(db_pool.clone()))
-            .nest("/search", search::router(db_pool.clone()))
-            .route("/healthcheck", get(healthcheck))
-            .nest("/packages", documentation::router(db_pool.clone()))
-            .route("/", get(home));
+            .nest("/", front::router())
+            .nest("/simple", simple::router())
+            .with_state(app_state)
+            .route("/healthcheck", get(healthcheck));
+
+        let db_middleware = ServiceBuilder::new()
+            .layer(AddExtensionLayer::new(db_pool))
+            .into_inner();
+
+        let trace_middleware = ServiceBuilder::new()
+            .set_x_request_id(MakeRequestUuid)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(
+                        DefaultMakeSpan::new()
+                            .include_headers(true)
+                            .level(Level::INFO),
+                    )
+                    .on_response(DefaultOnResponse::new().include_headers(true)),
+            )
+            .propagate_x_request_id()
+            .into_inner();
+
+        let app = app.layer(db_middleware).layer(trace_middleware);
 
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr).unwrap();
+        listener.set_nonblocking(true).unwrap();
 
         Application { app, listener }
     }
@@ -63,23 +103,29 @@ impl Application {
     pub async fn run(self) -> Result<(), hyper::Error> {
         greeting::greets(&self.address());
 
-        let middleware = ServiceBuilder::new()
-            .set_x_request_id(MakeRequestUuid)
-            .layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(MakeSpan)
-                    .on_response(OnResponse),
-            )
-            .propagate_x_request_id()
-            .into_inner();
+        let listener = TokioTcpListener::from_std(self.listener).unwrap();
 
-        hyper::Server::from_tcp(self.listener)?
-            .serve(
-                self.app
-                    .layer(middleware)
-                    .into_make_service_with_connect_info::<SocketAddr>(),
-            )
-            .await
+        loop {
+            let (socket, _) = listener.accept().await.unwrap();
+
+            let tower_service = self.app.clone();
+
+            tokio::spawn(async move {
+                let socket = TokioIo::new(socket);
+
+                let hyper_service =
+                    hyper::service::service_fn(move |request: Request<Incoming>| {
+                        tower_service.clone().call(request)
+                    });
+
+                if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                    .serve_connection_with_upgrades(socket, hyper_service)
+                    .await
+                {
+                    eprintln!("failed to serve connection: {err:#}");
+                }
+            });
+        }
     }
 
     pub fn address(&self) -> String {

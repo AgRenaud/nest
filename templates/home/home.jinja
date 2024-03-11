@@ -1,0 +1,49 @@
+{% extends 'base.jinja' %}
+
+{% block title %}Nest{% endblock %}
+
+{% block css %}
+{{ super() }}
+<style>
+    #results {
+        width: 50%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #search-bar {
+        width: 25em;
+    }
+</style>
+{% endblock css %}
+
+
+{% block content %}
+<section>
+<h2>Welcome to Nest</h2>
+<p>Your Simple Python Package Index in Rust 🦀</p>
+</br>
+<p>
+    Checkout the <a href="https://github.com/AgRenaud/nest">Github repository</a> !
+</p>
+</section>
+
+<hr />
+
+<section id="search-section">
+    <input
+    id="search-bar"
+    type="search"
+    placeholder="Search package.."
+    name="search"
+    hx-post="/search"
+    hx-trigger="keyup changed delay:250ms, search"
+    hx-target="#results"
+    hx-swap="innerHTML"
+    hx-indicator="#search-indicator">
+    <small><a href="/simple">Show all (simple index)</a></small>
+    <span id="search-indicator" aria-busy="true" class="htmx-indicator">Searching...</span>
+    <div id="results"></div>
+</secion>
+
+{% endblock content %}
+
