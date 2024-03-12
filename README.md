@@ -21,6 +21,8 @@ You can install [`Bunyan`](https://crates.io/crates/bunyan) to get human readabl
 
 To upload a package, you will first need an account. You can create one by filling the sign up form at `http://localhost:8080` (default value).
 
+![](./docs/nest-screenshots.png)
+
 Then you should be able to upload a package with the current command:
 
 ```sh
