@@ -7,14 +7,10 @@ use axum::{routing::get, Router};
 
 use axum_template::engine::Engine;
 
-
-
-
 use minijinja::{path_loader, Environment};
 use minijinja_autoreload::AutoReloader;
 use object_store::local::LocalFileSystem;
 use tokio::net::TcpListener as TokioTcpListener;
-
 
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;

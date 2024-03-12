@@ -63,6 +63,8 @@ pub struct RequestData {
     pub requires_dist: Option<String>,
     pub requires_external: Option<String>,
     pub requires_python: Option<String>,
+
+    #[form_data(limit = "unlimited")]
     pub content: FieldData<Bytes>,
 }
 
