@@ -16,7 +16,7 @@ async fn main() -> hyper::Result<()> {
     let application = Application::build(configuration).await;
 
     tracing::debug!("Run Application");
-    application.run().await.unwrap();
+    application.run().await;
 
     Ok(())
 }

@@ -6,15 +6,15 @@ use std::time::Duration;
 use axum::{routing::get, Router};
 
 use axum_template::engine::Engine;
-use hyper::body::Incoming;
-use hyper::Request;
-use hyper_util::rt::{TokioExecutor, TokioIo};
-use hyper_util::server;
+
+
+
+
 use minijinja::{path_loader, Environment};
 use minijinja_autoreload::AutoReloader;
 use object_store::local::LocalFileSystem;
 use tokio::net::TcpListener as TokioTcpListener;
-use tower::Service;
+
 
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
@@ -100,32 +100,13 @@ impl Application {
         Application { app, listener }
     }
 
-    pub async fn run(self) -> Result<(), hyper::Error> {
+    pub async fn run(self) {
         greeting::greets(&self.address());
 
+        let app = self.app.clone();
         let listener = TokioTcpListener::from_std(self.listener).unwrap();
 
-        loop {
-            let (socket, _) = listener.accept().await.unwrap();
-
-            let tower_service = self.app.clone();
-
-            tokio::spawn(async move {
-                let socket = TokioIo::new(socket);
-
-                let hyper_service =
-                    hyper::service::service_fn(move |request: Request<Incoming>| {
-                        tower_service.clone().call(request)
-                    });
-
-                if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-                    .serve_connection_with_upgrades(socket, hyper_service)
-                    .await
-                {
-                    eprintln!("failed to serve connection: {err:#}");
-                }
-            });
-        }
+        axum::serve(listener, app).await.unwrap();
     }
 
     pub fn address(&self) -> String {

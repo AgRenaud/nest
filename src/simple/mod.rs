@@ -1,7 +1,7 @@
 use axum_template::RenderHtml;
 
 use axum::{
-    extract::{Path, State},
+    extract::{DefaultBodyLimit, Path, State},
     response::IntoResponse,
     routing::{get, post},
     Router,
@@ -25,9 +25,9 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", post(upload))
         .route_layer(axum::middleware::from_fn(auth))
+        .layer(DefaultBodyLimit::disable())
         .route("/", get(list_packages))
         .route("/:project/", get(list_dists))
-        .layer(axum::extract::DefaultBodyLimit::disable())
         .route("/:project/:distribution", get(download_package))
 }
 
@@ -44,6 +44,7 @@ async fn upload(
     TypedMultipart(data): TypedMultipart<RequestData>,
 ) {
     let distribution: Distribution = data.into();
+    tracing::info!("Receive package: {:?}", &distribution.core_metadata.name);
 
     if (store.upload_package(distribution).await).is_err() {
         tracing::error!("Failed to upload package");
