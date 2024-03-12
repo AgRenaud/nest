@@ -33,10 +33,11 @@
     <input
     id="search-bar"
     type="search"
+    autocomplete="off"
     placeholder="Search package.."
     name="search"
     hx-post="/search"
-    hx-trigger="keyup changed delay:250ms, search"
+    hx-trigger="keyup changed delay:150ms, search"
     hx-target="#results"
     hx-swap="innerHTML"
     hx-indicator="#search-indicator">
