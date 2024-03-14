@@ -1,9 +1,11 @@
+// Implementation from crate https://github.com/myyrakle/axum_static
+// MIT License Copyright (c) 2023 myyrakle
+//
+// Had to make some fixes to make the crate compatible with axum 0.7
+// error messages are not handled anymore.
+
 use axum::{
-    http::{Request, StatusCode},
-    middleware::{from_fn, Next},
-    response::{IntoResponse, Response},
-    routing::get_service,
-    Router,
+    extract::Request, middleware::{from_fn, Next}, response::Response, routing::get_service, Router
 };
 use std::path::Path;
 use tower_http::services::ServeDir;
@@ -106,14 +108,6 @@ pub async fn content_type_middleware(req: Request<axum::body::Body>, next: Next)
 }
 
 pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
-    async fn handle_error(err: std::io::Error) -> impl IntoResponse {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("static router IO error: {:?}", err),
-        )
-            .into_response()
-    }
-
     let serve_dir = ServeDir::new(path);
     let serve_dir = get_service(serve_dir);
 
