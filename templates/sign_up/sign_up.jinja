@@ -5,7 +5,8 @@
 {% block css %}
 {{ super() }}
 <style>
-    #signup_form {
+    #signup_form,
+    #signup_created {
         width: 26em;
         margin-left: auto;
         margin-right: auto;
@@ -20,30 +21,31 @@
 
 {% block content %}
 <section id="signup_form" hx-ext="response-targets">
-<h1>Sign Up</h1>
-<form
-    hx-swap="outerHTML"
-    hx-post="/manage/create_user"
-    hx-target-422="#errorMessage"
-    >
-    <div>
-        <label for="userame">Username</label>
-        <input type="text" placeholder="Enter Username" name="username" required>
-    </div>
-    <div>
-        <label for="password">Password</label>
-        <input type="password" placeholder="Enter Password" name="password" required>
-    </div>
-    <div>
-        <label for="confirm_password">Confirm Password</label>
-        <input type="password" placeholder="Validate Password" name="confirm_password" required>
-    </div>
+    <h1>Sign Up</h1>
+    <form
+        hx-swap="outerHTML"
+        hx-post="/manage/create_user"
+        hx-target-201="#signup_form"
+        hx-target-422="#errorMessage"
+        >
+        <div>
+            <label for="userame">Username</label>
+            <input type="text" placeholder="Enter Username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input type="password" placeholder="Enter Password" name="password" required>
+        </div>
+        <div>
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" placeholder="Validate Password" name="confirm_password" required>
+        </div>
 
-    <div>
-        <button type="submit">Confirm</button>
-        <a href="/manage/sign_in">Already have an account? Sign in</a>
-    </div>
-</form>
+        <div>
+            <button type="submit">Confirm</button>
+            <a href="/manage/sign_in">Already have an account? Sign in</a>
+        </div>
+    </form>
 </section>
 
 <dialog close id="errorMessage">

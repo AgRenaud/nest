@@ -22,7 +22,7 @@ pub struct SignUp {
 }
 
 #[derive(Serialize)]
-struct ErrorMessage {
+struct Info {
     message: String,
 }
 
@@ -44,7 +44,7 @@ pub async fn create_user(
             RenderHtml(
                 "sign_up/components/sign_up_error.jinja",
                 engine,
-                ErrorMessage {
+                Info {
                     message: error_message,
                 },
             ),
@@ -68,12 +68,20 @@ pub async fn create_user(
 
     match user_created {
         Ok(_) => {
-            todo!();
-            /*html! {
-            div class="ma w-100 position-absolute shadow-2xl border-rd-1.2 p-10" {
-                p { "Welcome " (&form.username) }
-                a href="/manage/sign_in" { "Click here to sign in !" }
-            }*/
+            let message = format!("User {} has been succefully created", &form.username);
+
+            (
+                StatusCode::CREATED,
+                [
+                    (header::CONTENT_TYPE, "text/plain"),
+                    (header::CONTENT_ENCODING, "utf-8"),
+                ],
+                RenderHtml(
+                    "sign_up/components/sign_up_success.jinja",
+                    engine,
+                    Info { message },
+                ),
+            )
         }
         Err(e) => {
             let err = e.into_database_error();
@@ -95,14 +103,14 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            ErrorMessage {
+                            Info {
                                 message: error_message,
                             },
                         ),
                     )
                 }
                 _ => {
-                    let error_message = format!("User {} already exists.", &form.username);
+                    let error_message = "Unexpected error !".into();
                     (
                         StatusCode::UNPROCESSABLE_ENTITY,
                         [
@@ -112,7 +120,7 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            ErrorMessage {
+                            Info {
                                 message: error_message,
                             },
                         ),
