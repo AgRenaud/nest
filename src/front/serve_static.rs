@@ -5,7 +5,11 @@
 // error messages are not handled anymore.
 
 use axum::{
-    extract::Request, middleware::{from_fn, Next}, response::Response, routing::get_service, Router
+    extract::Request,
+    middleware::{from_fn, Next},
+    response::Response,
+    routing::get_service,
+    Router,
 };
 use std::path::Path;
 use tower_http::services::ServeDir;

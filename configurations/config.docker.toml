@@ -1,0 +1,14 @@
+[application]
+host = '0.0.0.0'
+port = 5037
+
+[persistence]
+[persistence.object_storage]
+path = './simple-index'
+
+[persistence.database]
+host = 'db'
+port = 5432
+username = 'nest-user'
+password = 'nest-secret'
+name = 'nest'

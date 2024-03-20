@@ -65,7 +65,7 @@ impl DatabaseSettings {
 }
 
 pub fn get_settings(path: Option<String>) -> Result<Settings, Error> {
-    let path = path.unwrap_or(String::from("default-config.toml"));
+    let path = path.unwrap_or(String::from("config.default.toml"));
 
     let config = std::fs::read_to_string(path).unwrap();
 

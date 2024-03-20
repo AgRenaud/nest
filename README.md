@@ -4,7 +4,7 @@ Python Package Index in `rust` 🦀
 
 ## Getting Started
 
-To run the server locally, first run `postgres` instance with `docker-compose up -d`.
+To run the server locally, first run `postgres` instance with `docker-compose up db -d`.
 
 Then you can initialize the database by running sqlx migrations.
 
@@ -19,20 +19,20 @@ You can install [`Bunyan`](https://crates.io/crates/bunyan) to get human readabl
 
 > You can test the server with the python's test module in the folder `my-module`.
 
-To upload a package, you will first need an account. You can create one by filling the sign up form at `http://localhost:8080` (default value).
+To upload a package, you will first need an account. You can create one by filling the sign up form at `http://localhost:5037` (default value).
 
 ![](./docs/nest-screenshots.png)
 
 Then you should be able to upload a package with the current command:
 
 ```sh
-twine upload package.whl --repository-url http://127.0.0.1:8080/simple
+twine upload package.whl --repository-url http://127.0.0.1:5037/simple
 ```
 
 and install the package with `pip`
 
 ```sh
-pip install --index-url http://localhost:8080/simple package
+pip install --index-url http://localhost:5037/simple package
 ```
 
 ## Roadmap

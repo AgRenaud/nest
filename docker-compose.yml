@@ -1,11 +1,11 @@
 version: '3'
 
 volumes:
-  db:
+  nest_db:
 
 services:
-  database:
-    image: docker.io/postgres:latest 
+  db:
+    image: docker.io/postgres:latest
     restart: always
     environment:
       - POSTGRES_DB=nest
@@ -13,5 +13,15 @@ services:
       - POSTGRES_PASSWORD=nest-secret
     ports:
       - '5432:5432'
-    volumes: 
-      - db:/var/lib/postgresql/data
+    volumes:
+      - nest_db:/var/lib/postgresql/data
+  nest:
+    image: nest
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - ./configurations/config.docker.toml:/app/config.default.toml
+    ports:
+      - '8080:5037'

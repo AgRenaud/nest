@@ -45,6 +45,12 @@ impl Application {
             .acquire_timeout(Duration::from_secs(2))
             .connect_lazy_with(config.persistence.database.with_db());
 
+        tracing::info!("Run migrations on {}", &config.persistence.database.host);
+        sqlx::migrate!("./migrations")
+            .run(&db_pool)
+            .await
+            .expect("Unable to run migrations");
+
         let simple_store = Store::new(db_pool.clone(), store);
         let simple_store = Arc::new(simple_store);
 
