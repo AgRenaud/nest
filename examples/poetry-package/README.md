@@ -1,7 +1,5 @@
 # My Module
 
-
-
 Test module.
 
 Build the module with `poetry build`.
@@ -12,7 +10,7 @@ Build the module with `poetry build`.
 poetry publish ...
 ```
 
-## Upload module with `twine` 
+## Upload module with `twine`
 ```shell
 poetry shell # Activate virtual environment
 

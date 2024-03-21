@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "my-module"
+name = "poetry_package"
 version = "0.1.0"
 description = "Test module for upload"
 authors = ["AgRenaud <renaud.aguirrechambilla@gmail.com>"]
 readme = "README.md"
-packages = [{include = "my_module"}]
+packages = [{include = "poetry_package"}]
 keywords = ["packaging", "testing"]
 maintainers = [
   "Aguirre Renaud <renaud.aguirrechambilla@gmail.com>",

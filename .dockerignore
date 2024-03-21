@@ -1,4 +1,5 @@
 target
 .git
 venv
+examples
 simple-index
