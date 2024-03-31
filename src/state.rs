@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use axum::extract::FromRef;
+use std::sync::Arc;
 
 use crate::{engine::AppEngine, simple::simple_api};
 

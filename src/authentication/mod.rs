@@ -1,5 +1,7 @@
 mod middleware;
-mod password;
+mod sessions;
+mod users;
 
 pub use middleware::auth;
-pub use password::*;
+pub use sessions::*;
+pub use users::*;

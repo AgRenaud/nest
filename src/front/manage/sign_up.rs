@@ -2,10 +2,10 @@ use axum::http::{header, StatusCode};
 use axum::response::IntoResponse;
 use axum::{extract::Extension, Form};
 use axum_template::RenderHtml;
-use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 
-use crate::authentication;
+use password_auth::generate_hash;
+
 use crate::engine::AppEngine;
 
 use sqlx::PgPool;
@@ -51,9 +51,8 @@ pub async fn create_user(
         );
     }
 
-    let password = secrecy::Secret::new(form.password);
-    let password_hash =
-        authentication::compute_password_hash(password).expect("Unable to create a proper hash.");
+    let password = form.password;
+    let password_hash = generate_hash(password);
 
     let user_created = sqlx::query!(
         r#"
@@ -61,7 +60,7 @@ pub async fn create_user(
         VALUES ($1::TEXT::CITEXT, $2)
         "#,
         &form.username,
-        password_hash.expose_secret(),
+        password_hash,
     )
     .execute(&pool)
     .await;
