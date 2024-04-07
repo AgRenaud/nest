@@ -4,8 +4,8 @@ use minijinja::context;
 
 use crate::{authentication::AuthSession, engine::AppEngine};
 
-pub async fn home(engine: AppEngine, mut auth_session: AuthSession) -> impl IntoResponse {
-    if let Some(uid) = auth_session.user {
+pub async fn home(engine: AppEngine, auth_session: AuthSession) -> impl IntoResponse {
+    if let Some(_uid) = auth_session.user {
         RenderHtml(
             "home/home.jinja",
             engine,
