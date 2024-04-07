@@ -94,8 +94,9 @@ impl Application {
         };
 
         let app = Router::new()
-            .nest("/", front::router().layer(auth_layer))
+            .nest("/", front::router())
             .nest("/simple", simple::router())
+            .layer(auth_layer)
             .with_state(app_state)
             .route("/healthcheck", get(healthcheck));
 
