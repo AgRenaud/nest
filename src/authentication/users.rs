@@ -34,6 +34,7 @@ impl AuthUser for User {
     }
 }
 
+#[derive(Deserialize)]
 pub struct Credentials {
     pub username: String,
     pub password: String,
@@ -69,10 +70,13 @@ impl AuthnBackend for Backend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user: Option<Self::User> = sqlx::query_as("select * from users where username = ? ")
-            .bind(creds.username)
-            .fetch_optional(&self.db)
-            .await?;
+        let user = sqlx::query_as!(
+            Self::User,
+            r#"SELECT id, username, password_hash as password FROM users WHERE username=$1"#,
+            creds.username
+        )
+        .fetch_optional(&self.db)
+        .await?;
 
         tokio::task::spawn_blocking(|| {
             // We're using password-based authentication--this works by comparing our form
@@ -83,10 +87,13 @@ impl AuthnBackend for Backend {
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
-        let user = sqlx::query_as("select * from users where id = ?")
-            .bind(user_id)
-            .fetch_optional(&self.db)
-            .await?;
+        let user = sqlx::query_as!(
+            Self::User,
+            r#"SELECT id, username, password_hash as password FROM users WHERE id = $1"#,
+            user_id
+        )
+        .fetch_optional(&self.db)
+        .await?;
 
         Ok(user)
     }

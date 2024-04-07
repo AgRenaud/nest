@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use axum::{routing::get, Router};
 use axum_login::tower_sessions::{Expiry, SessionManagerLayer};
+use axum_login::AuthManagerLayerBuilder;
 use axum_template::engine::Engine;
 
 use minijinja::{path_loader, Environment};
@@ -23,6 +24,7 @@ use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
 use tracing::Level;
 
+use crate::authentication::Backend;
 use crate::front;
 use crate::greeting;
 use crate::healthcheck::healthcheck;
@@ -83,16 +85,16 @@ impl Application {
             .with_signed(key)
             .with_expiry(Expiry::OnInactivity(time::Duration::days(15)));
 
+        let backend = Backend::new(db_pool.clone());
+        let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+
         let app_state = AppState {
             engine: Engine::from(jinja),
             store: simple_store,
         };
 
         let app = Router::new()
-            .nest("/",
-                front::router()
-                .layer(session_layer)
-            )
+            .nest("/", front::router().layer(auth_layer))
             .nest("/simple", simple::router())
             .with_state(app_state)
             .route("/healthcheck", get(healthcheck));

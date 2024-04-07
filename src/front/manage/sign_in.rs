@@ -4,7 +4,7 @@
 use axum::{response::IntoResponse, Form};
 use axum_login::{tower_sessions::Session, AuthUser};
 use axum_template::RenderHtml;
-use serde::Deserialize;
+use hyper::StatusCode;
 
 use crate::{
     authentication::{AuthSession, Credentials, UserSession, USER_SESSION_KEY},
@@ -15,18 +15,11 @@ pub async fn sign_in(engine: AppEngine) -> impl IntoResponse {
     RenderHtml("sign_in/sign_in.jinja", engine, &())
 }
 
-#[derive(Deserialize)]
-pub struct SignInForm {
-    username: String,
-    password: String,
-}
-
-pub async fn login(mut auth_session: AuthSession, session: Session, Form(form): Form<SignInForm>) {
-    let credentials = Credentials {
-        username: form.username,
-        password: form.password,
-    };
-
+pub async fn login(
+    mut auth_session: AuthSession,
+    session: Session,
+    Form(credentials): Form<Credentials>,
+) -> impl IntoResponse {
     if let Ok(auth) = auth_session.authenticate(credentials).await {
         if let Some(user) = auth {
             // Create a session in db;
@@ -42,16 +35,20 @@ pub async fn login(mut auth_session: AuthSession, session: Session, Form(form): 
                     .await
                     .unwrap();
 
-                println!("{:?}", user.id());
+                tracing::info!("{:?}", user.id());
+
+                (StatusCode::OK, [("HX-Redirect", "/")])
+            } else {
+                todo!()
             }
         } else {
-            println!("Login error, unable to find a valid user");
+            tracing::info!("Login error, unable to find a valid user");
             todo!()
         }
     } else {
         // Return a 401 bad credentials error*
         // Must be materialized by a modal message on html
-        println!("Login error, unable to use authenticate");
+        tracing::info!("Login error, unable to use authenticate");
         todo!()
     }
 }
