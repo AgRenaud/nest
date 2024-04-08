@@ -6,7 +6,6 @@ use axum::{
 };
 use axum_template::RenderHtml;
 use minijinja::context;
-use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::{engine::AppEngine, state::AppState};
@@ -66,12 +65,6 @@ pub async fn documentation_content(pool: PgPool, project: &str, version: &str) -
     .await
     .expect("Unable to fetch html content")
     .html
-}
-
-#[derive(Serialize)]
-struct Documentation {
-    package_name: String,
-    content: String,
 }
 
 pub async fn documentation(
