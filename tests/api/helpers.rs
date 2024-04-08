@@ -17,7 +17,7 @@ pub async fn spawn_app() -> TestApp {
             },
             database: settings::DatabaseSettings {
                 host: String::from("localhost"),
-                port: 8000,
+                port: 5432,
                 username: String::from("nest-user"),
                 password: String::from("nest-secret"),
                 name: String::from("nest"),

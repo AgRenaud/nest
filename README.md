@@ -51,12 +51,19 @@ pip install --index-url http://localhost:5037/simple package
   - [ ] Admin page
   - [x] User basic auth
   - [x] User sign up
+  - [x] User login / User session
   - [ ] User Roles (Contributor & admin)
 - [x] Embed package readme to website (`markdown` file only.)
 - [ ] Add Mirrors (and cache?) to others python indexes.
 - [x] Search package
 
-## Useful links
+### Ideas
+
+- Rely on [uv](https://github.com/astral-sh/uv) for PEP implementations such as `project`, `metadata`, etc.
+
+## Useful Resources
+
+Here is a list of the resources I heavily relied on to develop this project.
 
 - <https://docs.rs/axum/latest/axum/>
-
+- <https://www.zero2prod.com/>

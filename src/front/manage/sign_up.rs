@@ -2,10 +2,11 @@ use axum::http::{header, StatusCode};
 use axum::response::IntoResponse;
 use axum::{extract::Extension, Form};
 use axum_template::RenderHtml;
-use secrecy::ExposeSecret;
-use serde::{Deserialize, Serialize};
+use minijinja::context;
+use serde::Deserialize;
 
-use crate::authentication;
+use password_auth::generate_hash;
+
 use crate::engine::AppEngine;
 
 use sqlx::PgPool;
@@ -19,11 +20,6 @@ pub struct SignUp {
     username: String,
     password: String,
     confirm_password: String,
-}
-
-#[derive(Serialize)]
-struct Info {
-    message: String,
 }
 
 #[tracing::instrument(name = "Manage::Create user", skip(engine, pool, form))]
@@ -44,16 +40,15 @@ pub async fn create_user(
             RenderHtml(
                 "sign_up/components/sign_up_error.jinja",
                 engine,
-                Info {
-                    message: error_message,
+                context! {
+                    message => error_message
                 },
             ),
         );
     }
 
-    let password = secrecy::Secret::new(form.password);
-    let password_hash =
-        authentication::compute_password_hash(password).expect("Unable to create a proper hash.");
+    let password = form.password;
+    let password_hash = generate_hash(password);
 
     let user_created = sqlx::query!(
         r#"
@@ -61,7 +56,7 @@ pub async fn create_user(
         VALUES ($1::TEXT::CITEXT, $2)
         "#,
         &form.username,
-        password_hash.expose_secret(),
+        password_hash,
     )
     .execute(&pool)
     .await;
@@ -79,7 +74,7 @@ pub async fn create_user(
                 RenderHtml(
                     "sign_up/components/sign_up_success.jinja",
                     engine,
-                    Info { message },
+                    context! { message => message },
                 ),
             )
         }
@@ -103,14 +98,12 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            Info {
-                                message: error_message,
-                            },
+                            context! { message => error_message },
                         ),
                     )
                 }
                 _ => {
-                    let error_message = "Unexpected error !".into();
+                    let error_message = &"Unexpected error !";
                     (
                         StatusCode::UNPROCESSABLE_ENTITY,
                         [
@@ -120,9 +113,7 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            Info {
-                                message: error_message,
-                            },
+                            context! { message => error_message },
                         ),
                     )
                 }

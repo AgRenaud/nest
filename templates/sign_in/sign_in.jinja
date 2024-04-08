@@ -13,27 +13,38 @@
 </style>
 {% endblock css %}
 
+{% block headjs %}
+{{ super() }}
+<script src="https://unpkg.com/htmx.org/dist/ext/response-targets.js"></script>
+{% endblock headjs %}
+
 {% block content %}
-<section id="signin_form">
+<section id="signin_form" hx-ext="response-targets">
     <h1>Sign In</h1>
-    <form action="/manage/login" method="post">
+    <form
+        hx-swap="outerHTML"
+        hx-post="/manage/login"
+        hx-target-401="#errorMessage"
+        hx-target-5XX="#errorMessage"
+    >
         <section>
-            <label for="uname">Username</label>
-            <input type="text" placeholder="Enter Username" name="uname" required>
+            <label for="username">Username</label>
+            <input type="text" placeholder="Enter Username" name="username" required>
         </section>
         <section>
-            <label for="psw">Password</label>
-            <input type="password" placeholder="Enter Password" name="psw" required>
+            <label for="password">Password</label>
+            <input type="password" placeholder="Enter Password" name="password" required>
         </section>
         <section>
             <button type="submit">Login</button>
-            <a href="#">Forgot Password?</a>
+            <a href="#" disabled>Forgot Password?</a>
             <br>
             <a href="/manage/sign_up">Create an account</a>
         </section>
     </form>
 </section>
 
-
+<dialog close id="errorMessage">
+</dialog>
 
 {% endblock content %}

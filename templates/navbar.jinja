@@ -1,12 +1,30 @@
+{% if is_authenticated %}
+<style>
+ul li.logout a:hover {
+    transition: all 0.5s linear;
+    color: var(--pico-del-color);
+}
+</style>
+{% endif %}
+
 <nav>
     <ul>
         <li><a href="/" style="text-decoration: none;"><h1>Nest 🪺</h1></a></li>
     </ul>
     <ul>
-        <li><a href="/manage/sign_up">Sign up</a></li>
-        <!--<li><a href="/manage/sign_in">Sign in</a></li>-->
-        <li><a href="#" disabled>Sign in</a></li>
+        {% if is_authenticated %}
+            <details class="dropdown">
+                <summary>
+                    Account
+                </summary>
+                <ul dir="rtl">
+                    <li><a href="#">Profile</a></li>
+                    <li class="logout"><a href="/manage/logout">Logout</a></li>
+                </ul>
+            </details>
+        {% else %}
+            <li><a href="/manage/sign_up">Sign up</a></li>
+            <li><a href="/manage/sign_in">Sign in</a></li>
+        {% endif %}
     </ul>
 </nav>
-
-

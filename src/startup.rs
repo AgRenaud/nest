@@ -1,10 +1,10 @@
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::{routing::get, Router};
-
+use axum_login::tower_sessions::{Expiry, SessionManagerLayer};
+use axum_login::AuthManagerLayerBuilder;
 use axum_template::engine::Engine;
 
 use minijinja::{path_loader, Environment};
@@ -12,13 +12,19 @@ use minijinja_autoreload::AutoReloader;
 use object_store::local::LocalFileSystem;
 use tokio::net::TcpListener as TokioTcpListener;
 
+use tokio::signal;
+use tokio::task::AbortHandle;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
 use tower_http::request_id::MakeRequestUuid;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse};
 use tower_http::{trace::TraceLayer, ServiceBuilderExt};
+use tower_sessions::cookie::Key;
+use tower_sessions::session_store::ExpiredDeletion;
+use tower_sessions_sqlx_store::PostgresStore;
 use tracing::Level;
 
+use crate::authentication::Backend;
 use crate::front;
 use crate::greeting;
 use crate::healthcheck::healthcheck;
@@ -29,6 +35,7 @@ use sqlx::postgres::PgPoolOptions;
 
 pub struct Application {
     app: Router,
+    session_store: PostgresStore,
     listener: TcpListener,
 }
 
@@ -42,7 +49,7 @@ impl Application {
         let store = Arc::new(storage);
 
         let db_pool = PgPoolOptions::new()
-            .acquire_timeout(Duration::from_secs(2))
+            .acquire_timeout(std::time::Duration::from_secs(2))
             .connect_lazy_with(config.persistence.database.with_db());
 
         tracing::info!("Run migrations on {}", &config.persistence.database.host);
@@ -64,6 +71,23 @@ impl Application {
             Ok(env)
         });
 
+        let key = Key::generate();
+
+        let session_store = PostgresStore::new(db_pool.clone());
+        session_store
+            .migrate()
+            .await
+            .expect("Unable to create sessions");
+
+        let session_layer = SessionManagerLayer::new(session_store.clone())
+            .with_secure(false)
+            .with_http_only(true)
+            .with_signed(key)
+            .with_expiry(Expiry::OnInactivity(time::Duration::days(15)));
+
+        let backend = Backend::new(db_pool.clone());
+        let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+
         let app_state = AppState {
             engine: Engine::from(jinja),
             store: simple_store,
@@ -72,6 +96,7 @@ impl Application {
         let app = Router::new()
             .nest("/", front::router())
             .nest("/simple", simple::router())
+            .layer(auth_layer)
             .with_state(app_state)
             .route("/healthcheck", get(healthcheck));
 
@@ -99,7 +124,11 @@ impl Application {
         let listener = TcpListener::bind(addr).unwrap();
         listener.set_nonblocking(true).unwrap();
 
-        Application { app, listener }
+        Application {
+            app,
+            session_store,
+            listener,
+        }
     }
 
     pub async fn run(self) {
@@ -108,7 +137,16 @@ impl Application {
         let app = self.app.clone();
         let listener = TokioTcpListener::from_std(self.listener).unwrap();
 
-        axum::serve(listener, app).await.unwrap();
+        let deletion_task = tokio::task::spawn(
+            self.session_store
+                .clone()
+                .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+        );
+
+        axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
+            .await
+            .unwrap();
     }
 
     pub fn address(&self) -> String {
@@ -117,5 +155,29 @@ impl Application {
 
     pub fn port(&self) -> u16 {
         self.listener.local_addr().unwrap().port()
+    }
+}
+
+async fn shutdown_signal(deletion_task_abort_handle: AbortHandle) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { deletion_task_abort_handle.abort() },
+        _ = terminate => { deletion_task_abort_handle.abort() },
     }
 }
