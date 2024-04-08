@@ -8,12 +8,14 @@ use crate::state::AppState;
 mod documentation;
 mod home;
 mod manage;
+mod profile;
 mod search;
 mod serve_static;
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(home::home))
+        .route("/profile", get(profile::profile))
         .route("/search", post(search::search_package))
         .route("/search/doc/:project", get(search::show_documentation))
         .nest("/manage", manage::router())

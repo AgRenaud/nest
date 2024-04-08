@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_template::RenderHtml;
 use hyper::StatusCode;
+use minijinja::context;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -28,11 +29,6 @@ struct Package {
     pub has_docs: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct PackageList {
-    pub packages: Vec<Package>,
-}
-
 pub async fn search_package(
     Extension(pool): Extension<PgPool>,
     engine: AppEngine,
@@ -40,9 +36,7 @@ pub async fn search_package(
 ) -> impl IntoResponse {
     let query = query.search;
 
-    let mut package_list = PackageList {
-        packages: Vec::new(),
-    };
+    let mut package_list = Vec::new();
 
     if !query.trim().is_empty() {
         let mut packages = sqlx::query_as!(
@@ -57,9 +51,13 @@ pub async fn search_package(
         .await;
 
         if let Ok(packages) = &mut packages {
-            package_list.packages.append(packages);
+            package_list.append(packages);
         }
     };
 
-    RenderHtml("home/components/package-card.jinja", engine, package_list)
+    let ctx = context! {
+        packages => package_list
+    };
+
+    RenderHtml("home/components/package-card.jinja", engine, ctx)
 }

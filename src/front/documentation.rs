@@ -5,6 +5,7 @@ use axum::{
     Router,
 };
 use axum_template::RenderHtml;
+use minijinja::context;
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -79,9 +80,9 @@ pub async fn documentation(
     Path((project, version)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let doc = documentation_content(pool, &project, &version).await;
-    let doc = Documentation {
-        package_name: project,
-        content: doc,
-    };
-    RenderHtml("documentation.jinja", engine, doc)
+    RenderHtml(
+        "documentation.jinja",
+        engine,
+        context! { package_name => project, content => doc },
+    )
 }

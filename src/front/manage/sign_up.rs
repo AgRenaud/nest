@@ -2,7 +2,8 @@ use axum::http::{header, StatusCode};
 use axum::response::IntoResponse;
 use axum::{extract::Extension, Form};
 use axum_template::RenderHtml;
-use serde::{Deserialize, Serialize};
+use minijinja::context;
+use serde::Deserialize;
 
 use password_auth::generate_hash;
 
@@ -19,11 +20,6 @@ pub struct SignUp {
     username: String,
     password: String,
     confirm_password: String,
-}
-
-#[derive(Serialize)]
-struct Info {
-    message: String,
 }
 
 #[tracing::instrument(name = "Manage::Create user", skip(engine, pool, form))]
@@ -44,8 +40,8 @@ pub async fn create_user(
             RenderHtml(
                 "sign_up/components/sign_up_error.jinja",
                 engine,
-                Info {
-                    message: error_message,
+                context! {
+                    message => error_message
                 },
             ),
         );
@@ -78,7 +74,7 @@ pub async fn create_user(
                 RenderHtml(
                     "sign_up/components/sign_up_success.jinja",
                     engine,
-                    Info { message },
+                    context! { message => message },
                 ),
             )
         }
@@ -102,14 +98,12 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            Info {
-                                message: error_message,
-                            },
+                            context! { message => error_message },
                         ),
                     )
                 }
                 _ => {
-                    let error_message = "Unexpected error !".into();
+                    let error_message = &"Unexpected error !";
                     (
                         StatusCode::UNPROCESSABLE_ENTITY,
                         [
@@ -119,9 +113,7 @@ pub async fn create_user(
                         RenderHtml(
                             "sign_up/components/sign_up_error.jinja",
                             engine,
-                            Info {
-                                message: error_message,
-                            },
+                            context! { message => error_message },
                         ),
                     )
                 }
