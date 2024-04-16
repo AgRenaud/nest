@@ -2,11 +2,58 @@
 
 {% block title %}Nest - {{ package_name }}{% endblock %}
 
-{% block content %}
+{% block css %}
+{{ super() }}
+<style>
+    #content {
+        display: flex;
+    }
+    #readme {
+        border-left: 2px solid rgba(0, 0, 0, .15);;
+    }
+    #meta {
+        min-width: 14em;
+        max-width: 25em;
+    }
+</style>
+{% endblock css %}
 
-<hr />
-<section>
-{{ content }}
-</section>
-<hr />
+{% block content %}
+<div id="content">
+    <article id="meta">
+
+        {% if author %}
+        <article>
+            <h3>Author</h3>
+            {{ author }}
+        </article>
+        {% endif %}
+
+        {% if homepage %}
+        <article>
+            <h3>Home page</h3>
+            {{ homepage }}
+        </article>
+        {% endif %}
+
+        {% if license %}
+        <article>
+            <h3>License</h3>
+            {{ license }}
+        </article>
+        {% endif %}
+
+        <article>
+            <dl>
+            {% for kw in keywords %}
+                <dt><small> {{ kw }} </small></dt>
+            {% endfor %}
+            </dl>
+        </article>
+    </article>
+
+    <article id="readme">
+        {{ content }}
+    </article>
+</div>
 {% endblock content %}
